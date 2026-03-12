@@ -1,0 +1,95 @@
+/* 
+  ==============================================================
+  VOLTIOPR - ESTILOS SECUNDARIOS (BLUE EDITION)
+  ==============================================================
+  Nota para no programadores: 
+  Este archivo controla el "look" (apariencia) de la página. 
+  Aquí configuramos los colores, sombras y efectos de cristal
+  (glassmorphism) para que todas las pantallas se vean iguales.
+*/
+
+/* Importar tipo de letra Inter (moderno y fácil de leer) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+  /* El fondo de toda la app: Azul muy oscuro casi negro */
+  background-color: #020617;
+  /* Un gradiente en forma de círculo para dar profundidad */
+  background-image: radial-gradient(circle at center, #0a192f 0%, #020617 100%);
+  color: #e2e8f0;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* Efecto "Glassmorphism" (Cristal esmerilado translúcido) */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03); /* Blanco casi transparente */
+  backdrop-filter: blur(12px);           /* Desenfoque de lo que hay detrás */
+  -webkit-backdrop-filter: blur(12px);   /* Desenfoque para Safari */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Borde muy fino y brillante */
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8); /* Sombra para dar profundidad */
+}
+
+/* Efecto de resplandor Neón para botones importantes */
+.neon-glow {
+  box-shadow: 0 0 15px rgba(13, 185, 242, 0.4);
+  transition: all 0.3s ease;
+}
+
+.neon-glow:hover {
+  box-shadow: 0 0 25px rgba(13, 185, 242, 0.7); /* Brilla más al pasar el ratón */
+  transform: translateY(-2px); /* Se levanta un poquito */
+}
+
+/* ======= ESTILOS PARA INTERRUPTORES (TOGGLES) DEL DASHBOARD ======= */
+/* El color cuando está apagado */
+.toggle-checkbox {
+  transition: all 0.3s ease;
+}
+
+/* El color cuando está encendido (Volti Red) */
+.toggle-checkbox:checked {
+  background-color: #ff4b2b !important;
+  right: 0;
+  border-color: #ff4b2b !important;
+}
+
+/* Sombras y color del fondo del botón encendido */
+.toggle-checkbox:checked + .toggle-label {
+  background-color: rgba(255, 75, 43, 0.2);
+}
+
+/* ======= ESTILOS PARA DESLIZADORES (SLIDERS) ======= */
+/* Ocultar el estilo por defecto del navegador */
+input[type='range'] {
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  height: 10px;
+}
+
+/* El "botón" circular que mueves en el slider */
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  background: #0db9f2; /* Azul Voltio */
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 12px #0db9f2; /* Brillo azul */
+  border: 2px solid white;
+}
+
+/* ======= ANIMACIONES DE FONDO ======= */
+/* Puntos de luz en el fondo que le dan toque futurista */
+.bg-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none; /* Que no molesten al hacer clic en nada */
+}

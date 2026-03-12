@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voltiopr - IoT Dashboard Blue Edition</title>
+  
+  <!-- Tailwind CSS por CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  
+  <!-- Integrar librería de Gráficos (Chart.js) para ver telemetría -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Colores Oficiales -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'volti-blue': '#0a192f',
+            'volti-accent': '#0db9f2', /* Azul neón brillante */
+            'volti-glow': 'rgba(13, 185, 242, 0.3)',
+            'volti-red': '#ff4b2b',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Estilos globales que hemos centralizado -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="p-3 md:p-6 text-sm">
+
+  <!-- Animación Futurista de Fondo -->
+  <div class="bg-animation">
+    <div class="absolute top-0 right-0 w-80 h-80 bg-volti-accent opacity-5 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-0 left-0 w-64 h-64 bg-volti-accent opacity-5 rounded-full blur-[100px]"></div>
+  </div>
+
+  <!-- ENCABEZADO -->
+  <header class="max-w-7xl mx-auto mb-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <!-- Logo de la Imagen -->
+      <img src="logo.png" alt="VoltioPR Logo" class="w-10 h-10 object-contain mix-blend-screen rounded-full drop-shadow-[0_0_15px_#0db9f2]" />
+      <div>
+        <!-- Titulo que usa "bg-clip-text" para darle ese efecto degradado a las letras -->
+        <h1 class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-volti-accent to-white">
+          VOLTIOPR
+        </h1>
+        <p class="text-[10px] uppercase tracking-widest text-volti-accent opacity-80">
+          Panel de Control IoT
+        </p>
+      </div>
+    </div>
+    
+    <!-- Indicador de Sesión y Logout -->
+    <div class="flex items-center gap-4">
+      <div id="status-indicator" class="hidden md:flex px-3 py-1 glass-panel rounded-full text-xs font-medium border-volti-accent/30 items-center gap-2 text-white">
+        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+        SISTEMA CONECTADO SEGURO
+      </div>
+      <!-- Botón para cerrar sesión -->
+      <button id="btn-logout" class="bg-red-500/20 hover:bg-red-500/50 border border-red-500/50 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
+        Salir
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL (Dashboard) -->
+  <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 text-white">
+    
+    <!-- COLUMNA IZQUIERDA: Tarjetas de control y switches IoT -->
+    <section class="lg:col-span-5 space-y-4">
+      
+      <!-- Panel de Controles -->
+      <div class="glass-panel rounded-2xl p-4 lg:p-5">
+        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+          <!-- Ícono de Hardware - SVG -->
+          <svg class="h-5 w-5 text-volti-accent" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+          </svg>
+          Control de Hardware NodeMCU
+        </h2>
+
+        <!-- Lista de Actuadores (Interruptores) -->
+        <div class="space-y-3">
+          
+          <!-- Botón de Control 1 (Luz Principal o Reactor) -->
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">Reactor Principal</span>
+              <!-- Toggle Switch (El interruptor) -->
+              <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                <!-- Se le agregó la clase 'iot-toggle' para atrapar el clic desde Github app.js -->
+                <input type="checkbox" id="reactor-toggle" name="reactor-toggle" class="iot-toggle toggle-checkbox absolute block w-5 h-5 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all duration-300" />
+                <label for="reactor-toggle" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-800 cursor-pointer"></label>
+              </div>
+            </div>
+            <!-- Barra de potencia (Control Deslizante - PWM) -->
+            <div class="flex items-center gap-4">
+              <span class="text-[10px] text-slate-400 w-10">Poder</span>
+              <input type="range" id="reactor-pwm" min="0" max="100" value="45" class="iot-slider flex-grow accent-volti-accent" />
+              <span id="reactor-pwm-value" class="text-[10px] font-mono text-volti-accent w-8 text-right">45%</span>
+            </div>
+          </div>
+
+          <!-- Botón de Control 2 (Bomba de Agua / Enfriamiento) -->
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">Sistema Modular de Enfriamiento</span>
+              <div class="relative inline-block w-10 align-middle select-none">
+                <input type="checkbox" id="cooling-toggle" name="cooling-toggle" class="iot-toggle toggle-checkbox absolute block w-5 h-5 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all duration-300" />
+                <label for="cooling-toggle" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-800 cursor-pointer"></label>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-[10px] text-slate-400 w-10">Poder</span>
+              <input type="range" id="cooling-pwm" min="0" max="100" value="82" class="iot-slider flex-grow" />
+              <span id="cooling-pwm-value" class="text-[10px] font-mono text-volti-accent w-8 text-right">82%</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tarjeta de Diagnóstico (Estado de los Pines Creada Puramente en CSS) -->
+      <div class="glass-panel rounded-2xl p-4">
+        <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">Estado Diagnóstico Pines del Sistema</h3>
+        <div class="grid grid-cols-2 gap-3" id="pin-status-container">
+           <!-- Los indicadores de pines se insertan por app.js dinámicamente -->
+           <p class="text-xs text-slate-400 italic col-span-2">Cargando estado en vivo...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUMNA DERECHA: Gráficas visuales para los sensores -->
+    <section class="lg:col-span-7 space-y-4">
+      
+      <!-- Gráfico 1: Consumo Actual - Chart.js -->
+      <div class="glass-panel rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Consumo Real e Interferencia</h2>
+          <span class="px-2 py-0.5 bg-volti-accent/10 text-volti-accent text-[10px] font-bold rounded-full border border-volti-accent/20 uppercase">
+            En Vivo DB
+          </span>
+        </div>
+        <!-- Contenedor del canvas es importante para que el grafico se adapte -->
+        <div class="h-44">
+          <canvas id="loadChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Gráfico 2: Temperatura del NodeMCU o ambiente -->
+      <div class="glass-panel rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Distribución Térmica Ambiente</h2>
+          <span id="sync-status" class="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-full border border-orange-500/20 uppercase">
+            Sincronizando...
+          </span>
+        </div>
+        <div class="h-44">
+          <canvas id="thermalChart"></canvas>
+        </div>
+      </div>
+    
+    </section>
+  </main>
+
+  <footer class="max-w-7xl mx-auto mt-6 mb-4 text-center text-slate-600 text-[10px]">
+    <p>© 2026 voltiop.com - Interfaz Inteligente Blue Edition</p>
+  </footer>
+
+  <!-- Lógica con Supabase y Gráficas de Telemetría -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

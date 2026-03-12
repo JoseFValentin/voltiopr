@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VoltioPR - Login Blue Edition</title>
+<!-- Importación de Tailwind CSS v3 con plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Configuración personalizada de Tailwind para el color de marca Voltio -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            voltio: '#0db9f2',
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="glassmorphism-effects">
+    /* Estilo para el fondo animado futurista */
+    body {
+      background: radial-gradient(circle at center, #0a192f 0%, #020617 100%);
+      overflow: hidden;
+    }
+
+    /* Efecto Glassmorphism (Cristal esmerilado) */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+    }
+
+    /* Resplandor Neon para elementos destacados */
+    .neon-glow {
+      box-shadow: 0 0 15px rgba(13, 185, 242, 0.4);
+      transition: all 0.3s ease;
+    }
+    
+    .neon-glow:hover {
+      box-shadow: 0 0 25px rgba(13, 185, 242, 0.7);
+    }
+
+    /* Animación de partículas de fondo */
+    .bg-animation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+  </style>
+<style data-purpose="typography">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+<!-- END: Custom Styles -->
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+<!-- BEGIN: Background Decoration -->
+<!-- Elementos decorativos circulares para dar profundidad al fondo -->
+<div class="bg-animation">
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-voltio opacity-10 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-voltio opacity-5 rounded-full blur-[80px]"></div>
+</div>
+<!-- END: Background Decoration -->
+<!-- BEGIN: Login Container -->
+<main class="w-full max-w-md" data-purpose="login-card-container">
+<!-- BEGIN: Glass Card -->
+<section class="glass-panel rounded-3xl p-8 md:p-10 relative overflow-hidden">
+<!-- Logo o Título de la Marca -->
+<div class="text-center mb-8" data-purpose="brand-header">
+<h1 class="text-4xl font-bold text-white tracking-tighter">
+          VOLTIO<span class="text-voltio">PR</span>
+</h1>
+<p class="text-gray-400 text-sm mt-2">Blue Edition • Futuro Digital</p>
+</div>
+<!-- BEGIN: Login Form -->
+<!-- Formulario preparado para integración Fullstack -->
+<form action="/login" class="space-y-5" id="login-form" method="POST">
+<!-- Campo: Usuario -->
+<div class="space-y-1">
+<label class="text-xs font-semibold text-gray-300 uppercase tracking-wider ml-1" for="username">Usuario</label>
+<input class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-voltio/50 focus:border-voltio transition-all" id="username" name="username" placeholder="Tu usuario" required="" type="text"/>
+</div>
+<!-- Campo: Email -->
+<div class="space-y-1">
+<label class="text-xs font-semibold text-gray-300 uppercase tracking-wider ml-1" for="email">Correo Electrónico</label>
+<input class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-voltio/50 focus:border-voltio transition-all" id="email" name="email" placeholder="ejemplo@voltio.com" required="" type="email"/>
+</div>
+<!-- Campo: Contraseña -->
+<div class="space-y-1">
+<label class="text-xs font-semibold text-gray-300 uppercase tracking-wider ml-1" for="password">Contraseña</label>
+<input class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-voltio/50 focus:border-voltio transition-all" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+<!-- Botón: Acceder -->
+<button class="w-full bg-voltio hover:bg-voltio/80 text-white font-bold py-3 rounded-xl transition-all transform active:scale-[0.98] neon-glow mt-2" type="submit">
+          Iniciar Sesión
+        </button>
+<!-- Divisor visual -->
+<div class="flex items-center my-6">
+<div class="flex-grow border-t border-white/10"></div>
+<span class="px-3 text-xs text-gray-500 uppercase">O continuar con</span>
+<div class="flex-grow border-t border-white/10"></div>
+</div>
+<!-- Botón: Google -->
+<button class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-3 transition-all" data-purpose="google-oauth-button" type="button">
+<svg class="w-5 h-5" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="currentColor"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" fill-opacity="0.8"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" fill-opacity="0.8"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" fill-opacity="0.8"></path>
+</svg>
+          Continue with Google
+        </button>
+</form>
+<!-- END: Login Form -->
+<!-- BEGIN: Footer Links -->
+<footer class="mt-8 space-y-4 text-center">
+<div class="flex flex-col gap-2 sm:flex-row sm:justify-between text-xs">
+<a class="text-voltio hover:underline" href="#">¿Olvidaste tu contraseña?</a>
+<a class="text-white/60 hover:text-white transition-colors" href="#">Crear Cuenta</a>
+</div>
+<!-- Sello de Privacidad -->
+<div class="pt-4 border-t border-white/10 flex items-center justify-center gap-2" data-purpose="privacy-seal">
+<svg class="w-4 h-4 text-voltio" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-[10px] text-white/40 uppercase tracking-widest font-semibold">Privacy Seal Secured</span>
+</div>
+</footer>
+<!-- END: Footer Links -->
+</section>
+<!-- END: Glass Card -->
+<!-- Mensaje de pie de página fuera del contenedor principal -->
+<p class="text-center text-white/20 text-xs mt-6 uppercase tracking-widest">
+      © 2024 Voltiopr.com - Todos los derechos reservados
+    </p>
+</main>
+<!-- END: Login Container -->
+<!-- BEGIN: Logic/Interactivity -->
+<script data-purpose="form-handling">
+    // Script básico para manejar el envío del formulario (Demo)
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      // Prevenir el recargo de página real para esta demostración
+      // e.preventDefault(); 
+      console.log('Intento de inicio de sesión detectado');
+    });
+  </script>
+<!-- END: Logic/Interactivity -->
+</body></html>
