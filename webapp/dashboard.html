@@ -11,8 +11,7 @@
   <!-- Integrar librería de Gráficos (Chart.js) para ver telemetría -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 
   <!-- Colores Oficiales -->
   <script>
@@ -174,7 +173,13 @@
     <p>© 2026 voltiop.com - Interfaz Inteligente Blue Edition</p>
   </footer>
 
-  <!-- Lógica con Supabase y Gráficas de Telemetría -->
+  <!-- 
+    CEREBRO DEL DASHBOARD:
+    Este archivo "app.js" es el que:
+    1. Se conecta con la base de datos de Cloudflare para saber qué luces están prendidas.
+    2. Dibuja las gráficas de consumo eléctrico y temperatura.
+    3. Envía las órdenes de "Prender" o "Apagar" cuando mueves los interruptores.
+  -->
   <script type="module" src="app.js"></script>
 </body>
 </html>

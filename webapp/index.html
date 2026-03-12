@@ -24,8 +24,7 @@
   <!-- Importar nuestro archivo de estilos principal -->
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- Supabase JS CDN: Esta es la "magia" que conecta con la base de datos real -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 text-white relative">
   
@@ -130,8 +129,14 @@
     </p>
   </main>
 
-  <!-- Lógica de Javascript para Supabase y Login -->
-  <!-- Esto es un módulo para poder usar variables compartidas o librerías externas -->
+  <!-- 
+    ESTA ES LA LÓGICA DE PROGRAMACIÓN (EL CEREBRO):
+    Aquí cargamos el archivo "app.js" que es el que se encarga de:
+    1. Revisar si el correo y clave que escribiste son correctos.
+    2. Mandar la orden al servidor para dejarte entrar.
+    3. Guardar tu sesión para que no tengas que loguearte a cada rato.
+    "type=module" significa que es un archivo moderno y organizado.
+  -->
   <script type="module" src="app.js"></script>
 </body>
 </html>

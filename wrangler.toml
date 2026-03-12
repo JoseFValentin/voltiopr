@@ -1,0 +1,27 @@
+# ==============================================================
+# CONFIGURACIÓN DE CLOUDFLARE (CEREBRO DEL PROYECTO)
+# ==============================================================
+# Nota para no programadores:
+# Este archivo (wrangler.toml) es como el "manual de instrucciones"
+# que Cloudflare lee para saber cómo configurar y armar tu proyecto
+# en sus servidores en la nube.
+
+# 1. Nombre de tu proyecto en Cloudflare
+name = "voltiopr"
+
+# 2. Compatibilidad: Usa la versión de la nube al día de hoy
+compatibility_date = "2024-03-12"
+
+# 3. Carpeta donde están los archivos de tu página web (HTML, CSS, JS)
+pages_build_output_dir = "webapp"
+
+# ==============================================================
+# 4. CONEXIÓN A LA BASE DE DATOS D1
+# ==============================================================
+# Aquí le decimos a Cloudflare: "Este proyecto usa una base de datos
+# llamada DB".
+[[d1_databases]]
+binding = "DB"              # El nombre interno que usaremos en el código (como un apodo)
+database_name = "voltiopr_db" # El nombre real de la base de datos en la nube
+database_id = ""            # IMPORTANTE: Aquí irá el ID único de tu BD cuando la creemos en Cloudflare. Por ahora se queda vacío.
+preview_database_id = "DB"  # ID para pruebas locales
