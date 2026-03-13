@@ -82,8 +82,46 @@ input[type='range']::-webkit-slider-thumb {
   border: 2px solid white;
 }
 
-/* ======= ANIMACIONES DE FONDO ======= */
-/* Puntos de luz en el fondo que le dan toque futurista */
+/* ======= NAVEGACIÓN PREMIUM ======= */
+.main-nav {
+  position: sticky;
+  top: 1rem;
+  z-index: 50;
+  margin-bottom: 2rem;
+}
+
+.nav-link {
+  position: relative;
+  transition: color 0.3s ease;
+  color: #94a3b8; /* Slate 400 */
+}
+
+.nav-link:hover {
+  color: #0db9f2; /* Azul Voltio */
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #0db9f2;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px #0db9f2;
+}
+
+.nav-link:hover::after, .active-link::after {
+  width: 100%;
+}
+
+.active-link {
+  color: white !important;
+  font-weight: 700;
+}
+
+/* Propiedades extras de animación manual */
 .bg-animation {
   position: fixed;
   top: 0;

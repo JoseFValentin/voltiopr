@@ -24,13 +24,26 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 text-white relative">
   
-  <!-- Encabezado Superior Izquierdo -->
-  <header class="absolute top-6 left-6 flex items-center gap-3 z-50">
-    <img src="logo.png" alt="VoltioPR Logo" class="w-10 h-10 md:w-12 md:h-12 object-contain mix-blend-screen rounded-full drop-shadow-[0_0_15px_#0db9f2]" />
-    <span class="text-xl md:text-2xl font-extrabold tracking-tight text-white">
-      VOLTIO<span class="text-voltio">PR</span>
-    </span>
-  </header>
+  <!-- NAVEGACIÓN SUPERIOR (Unificado) -->
+  <nav class="main-nav w-full max-w-7xl mx-auto px-4 absolute top-0 left-0 right-0 mt-6">
+    <div class="glass-panel rounded-2xl p-3 md:p-4 flex items-center justify-between border-volti-accent/20">
+      <div class="flex items-center space-x-3">
+        <img src="logo.png" alt="VoltioPR" class="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full drop-shadow-[0_0_10px_#0db9f2]" />
+        <div>
+          <h1 class="text-lg md:text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-volti-accent to-white leading-none">
+            VOLTIOPR
+          </h1>
+          <p class="text-[8px] uppercase tracking-widest text-volti-accent opacity-70">Blue Edition</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="index.html" class="text-[10px] font-bold uppercase tracking-widest text-white hover:text-volti-accent transition">Entrar</a>
+        <span class="w-1 h-1 bg-white/20 rounded-full"></span>
+        <a href="GUIA_DE_IMPLEMENTACION.md" target="_blank" class="text-[10px] font-bold uppercase tracking-widest text-white/50 hover:text-white transition">Soporte</a>
+      </div>
+    </div>
+  </nav>
+
 
   <div class="bg-animation">
     <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-voltio opacity-10 rounded-full blur-[120px]"></div>

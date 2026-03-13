@@ -40,34 +40,46 @@
     <div class="absolute bottom-0 left-0 w-64 h-64 bg-volti-accent opacity-5 rounded-full blur-[100px]"></div>
   </div>
 
-  <!-- ENCABEZADO -->
-  <header class="max-w-7xl mx-auto mb-4 flex items-center justify-between">
-    <div class="flex items-center space-x-3">
-      <!-- Logo de la Imagen -->
-      <img src="logo.png" alt="VoltioPR Logo" class="w-10 h-10 object-contain mix-blend-screen rounded-full drop-shadow-[0_0_15px_#0db9f2]" />
-      <div>
-        <!-- Titulo que usa "bg-clip-text" para darle ese efecto degradado a las letras -->
-        <h1 class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-volti-accent to-white">
-          VOLTIOPR
-        </h1>
-        <p class="text-[10px] uppercase tracking-widest text-volti-accent opacity-80">
-          Panel de Control IoT
-        </p>
+  <!-- NAVEGACIÓN PRINCIPAL -->
+  <nav class="main-nav max-w-7xl mx-auto px-4 md:px-0">
+    <div class="glass-panel rounded-2xl p-3 md:p-4 flex items-center justify-between border-volti-accent/20">
+      
+      <!-- LOGO Y TÍTULO -->
+      <div class="flex items-center space-x-3">
+        <img src="logo.png" alt="VoltioPR" class="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full drop-shadow-[0_0_10px_#0db9f2]" />
+        <div class="hidden sm:block">
+          <h1 class="text-lg md:text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-volti-accent to-white leading-none">
+            VOLTIOPR
+          </h1>
+          <p class="text-[8px] uppercase tracking-widest text-volti-accent opacity-70">Blue Edition</p>
+        </div>
       </div>
-    </div>
-    
-    <!-- Indicador de Sesión y Logout -->
-    <div class="flex items-center gap-4">
-      <div id="status-indicator" class="hidden md:flex px-3 py-1 glass-panel rounded-full text-xs font-medium border-volti-accent/30 items-center gap-2 text-white">
-        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-        SISTEMA CONECTADO SEGURO
+
+      <!-- LINKS CENTRALES -->
+      <div class="flex items-center gap-6 md:gap-8">
+        <a href="dashboard.html" class="nav-link active-link text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          Panel
+        </a>
+        <a href="config.html" class="nav-link text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          Pines
+        </a>
+        <a href="GUIA_DE_IMPLEMENTACION.md" target="_blank" class="nav-link text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.082.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.082.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          Ayuda
+        </a>
       </div>
-      <!-- Botón para cerrar sesión -->
-      <button id="btn-logout" class="bg-red-500/20 hover:bg-red-500/50 border border-red-500/50 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
-        Salir
+
+      <!-- BOTÓN SALIR -->
+      <button id="btn-logout" class="group flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 px-3 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95">
+        <span class="hidden md:inline">SALIR</span>
+        <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
       </button>
+
     </div>
-  </header>
+  </nav>
+
 
   <!-- CONTENIDO PRINCIPAL (Dashboard) -->
   <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 text-white">
@@ -86,45 +98,15 @@
         </h2>
 
         <!-- Lista de Actuadores (Interruptores) -->
-        <div class="space-y-3">
+        <div id="iot-controls-container" class="space-y-3">
+          <!-- Dispositivos Dinámicos se cargarán aquí -->
           
-          <!-- Botón de Control 1 (Luz Principal o Reactor) -->
-          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">Reactor Principal</span>
-              <!-- Toggle Switch (El interruptor) -->
-              <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
-                <!-- Se le agregó la clase 'iot-toggle' para atrapar el clic desde Github app.js -->
-                <input type="checkbox" id="reactor-toggle" name="reactor-toggle" class="iot-toggle toggle-checkbox absolute block w-5 h-5 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all duration-300" />
-                <label for="reactor-toggle" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-800 cursor-pointer"></label>
-              </div>
-            </div>
-            <!-- Barra de potencia (Control Deslizante - PWM) -->
-            <div class="flex items-center gap-4">
-              <span class="text-[10px] text-slate-400 w-10">Poder</span>
-              <input type="range" id="reactor-pwm" min="0" max="100" value="45" class="iot-slider flex-grow accent-volti-accent" />
-              <span id="reactor-pwm-value" class="text-[10px] font-mono text-volti-accent w-8 text-right">45%</span>
-            </div>
+          <div class="text-center py-6 opacity-20 italic text-xs">
+            Cargando configuración de pines...
           </div>
-
-          <!-- Botón de Control 2 (Bomba de Agua / Enfriamiento) -->
-          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">Sistema Modular de Enfriamiento</span>
-              <div class="relative inline-block w-10 align-middle select-none">
-                <input type="checkbox" id="cooling-toggle" name="cooling-toggle" class="iot-toggle toggle-checkbox absolute block w-5 h-5 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all duration-300" />
-                <label for="cooling-toggle" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-800 cursor-pointer"></label>
-              </div>
-            </div>
-            <div class="flex items-center gap-4">
-              <span class="text-[10px] text-slate-400 w-10">Poder</span>
-              <input type="range" id="cooling-pwm" min="0" max="100" value="82" class="iot-slider flex-grow" />
-              <span id="cooling-pwm-value" class="text-[10px] font-mono text-volti-accent w-8 text-right">82%</span>
-            </div>
-          </div>
-
         </div>
       </div>
+
 
       <!-- Tarjeta de Diagnóstico (Estado de los Pines Creada Puramente en CSS) -->
       <div class="glass-panel rounded-2xl p-4">

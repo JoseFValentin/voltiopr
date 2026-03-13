@@ -1,20 +1,14 @@
 /*
   ==============================================================
-  VOLTIOPR - LÓGICA DE APLICACIÓN (FRONTEND)
+  VOLTIOPR - LÓGICA DE APLICACIÓN DINÁMICA
   ==============================================================
-  Nota para no programadores:
-  Este archivo controla el comportamiento de la página web.
-  Ahora se comunica con nuestro propio "Backend" (Cloudflare Functions)
-  en vez de usar Supabase directamente.
 */
 
-// ==============================================================
-// 1. FUNCIÓN PRINCIPAL QUE ARRANCA TODO
-// ==============================================================
 document.addEventListener('DOMContentLoaded', async () => {
   const isLoginPage = document.getElementById('login-form') !== null;
   const isRegisterPage = document.getElementById('register-form') !== null;
-  const isDashboardPage = document.getElementById('loadChart') !== null;
+  const isDashboardPage = document.getElementById('iot-controls-container') !== null;
+  const isConfigPage = document.getElementById('config-form') !== null;
 
   if (isLoginPage) setupLogin();
   if (isRegisterPage) setupRegister();
@@ -23,7 +17,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupDashboardCharts();
     setupHardwareControls();
   }
+  if (isConfigPage) {
+    checkUserSession();
+    setupConfig();
+  }
 });
+
+// ==============================================================
+// 1. SEGURIDAD Y SESIÓN
+// ==============================================================
+function checkUserSession() {
+  if (!localStorage.getItem('voltiopr_session')) {
+    window.location.href = 'index.html';
+  }
+  const btnLogout = document.getElementById('btn-logout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+        localStorage.removeItem('voltiopr_session');
+        localStorage.removeItem('voltiopr_user');
+        window.location.href = 'index.html';
+    });
+  }
+}
 
 // ==============================================================
 // 2. PANTALLA DE LOGIN
@@ -39,24 +54,16 @@ function setupLogin() {
     errorMsg.classList.add('hidden');
 
     try {
-      // Llamar a nuestra propia API de login en Cloudflare
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Error desconocido");
-      }
-
-      // Guardar sesión y redirigir
+      if (!response.ok) throw new Error(data.error);
       localStorage.setItem('voltiopr_session', data.token);
       localStorage.setItem('voltiopr_user', data.usuario);
       window.location.href = 'dashboard.html';
-
     } catch (err) {
       errorMsg.textContent = err.message;
       errorMsg.classList.remove('hidden');
@@ -79,9 +86,6 @@ function setupRegister() {
     const password = document.getElementById('reg-password').value;
     const passConfirm = document.getElementById('reg-password-confirm').value;
 
-    errorMsg.classList.add('hidden');
-    successMsg.classList.add('hidden');
-
     if (password !== passConfirm) {
       errorMsg.textContent = "Las contraseñas no coinciden.";
       errorMsg.classList.remove('hidden');
@@ -89,24 +93,16 @@ function setupRegister() {
     }
 
     try {
-      // Llamar a nuestra API de registro
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password })
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error);
-      }
-
+      if (!response.ok) throw new Error(data.error);
       successMsg.textContent = data.mensaje;
       successMsg.classList.remove('hidden');
-      
-      setTimeout(() => { window.location.href = 'index.html'; }, 3000);
-
+      setTimeout(() => { window.location.href = 'index.html'; }, 2000);
     } catch (err) {
       errorMsg.textContent = err.message;
       errorMsg.classList.remove('hidden');
@@ -115,41 +111,226 @@ function setupRegister() {
 }
 
 // ==============================================================
-// 4. SEGURIDAD DEL DASHBOARD 
+// 4. CONFIGURACIÓN DE PINES (Nueva funcionalidad)
 // ==============================================================
-function checkUserSession() {
-  // Verificamos si existe el pase guardado en la memoria del navegador
-  if (!localStorage.getItem('voltiopr_session')) {
-    window.location.href = 'index.html';
-  }
+async function setupConfig() {
+  const form = document.getElementById('config-form');
+  const listContainer = document.getElementById('pines-list');
 
-  // Comportamiento Logout
-  document.getElementById('btn-logout').addEventListener('click', () => {
-    localStorage.removeItem('voltiopr_session');
-    localStorage.removeItem('voltiopr_user');
-    window.location.href = 'index.html';
+  // Cargar lista inicial
+  const loadPines = async () => {
+    const res = await fetch('/api/config');
+    const pines = await res.json();
+    listContainer.innerHTML = pines.map(p => `
+      <div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-volti-accent/10 rounded-lg text-volti-accent font-bold text-[10px] w-12 text-center border border-volti-accent/20">
+                ${p.pin}
+            </div>
+            <div>
+                <p class="font-bold text-xs">${p.nombre}</p>
+                <p class="text-[9px] text-slate-400 uppercase tracking-wider">${p.tipo}</p>
+            </div>
+        </div>
+        <button onclick="deletePin('${p.id}')" class="text-red-400/50 hover:text-red-400 p-2 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        </button>
+      </div>
+    `).join('');
+  };
+
+  window.deletePin = async (id) => {
+    if (confirm('¿Eliminar esta configuración?')) {
+        await fetch(`/api/config?id=${id}`, { method: 'DELETE' });
+        loadPines();
+    }
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      nombre: document.getElementById('conf-nombre').value,
+      id: document.getElementById('conf-id').value,
+      pin: document.getElementById('conf-pin').value,
+      tipo: document.getElementById('conf-tipo').value,
+      descripcion: document.getElementById('conf-desc').value
+    };
+
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (res.ok) {
+        form.reset();
+        loadPines();
+    }
   });
+
+  loadPines();
 }
 
 // ==============================================================
-// 5. GRÁFICAS DEL DASHBOARD (CHART.JS)
+// 5. DASHBOARD DINÁMICO
+// ==============================================================
+async function setupHardwareControls() {
+  const container = document.getElementById('iot-controls-container');
+  
+  try {
+    // 1. Obtener la configuración
+    const configRes = await fetch('/api/config');
+    const config = await configRes.json();
+    
+    if (config.length === 0) {
+        container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs italic">No hay dispositivos configurados. Ve a "Configurar ESP" para añadir uno.</div>`;
+        return;
+    }
+
+    container.innerHTML = ''; // Limpiar cargando
+
+    // 2. Renderizar cada dispositivo según su tipo
+    config.forEach(dev => {
+      const card = document.createElement('div');
+      card.className = "p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2";
+      
+      let controlHtml = '';
+      
+      switch(dev.tipo) {
+        case 'DIGITAL_OUT':
+          controlHtml = `
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre} (${dev.pin})</span>
+              <div class="relative inline-block w-10 align-middle select-none">
+                <input type="checkbox" id="${dev.id}-toggle" ${dev.valor_actual == '1' ? 'checked' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-5 h-5 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
+                <label for="${dev.id}-toggle" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-800 cursor-pointer"></label>
+              </div>
+            </div>
+          `;
+          break;
+        case 'PWM':
+          controlHtml = `
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                 <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                 <span class="text-[10px] text-volti-accent px-1.5 py-0.5 bg-volti-accent/10 rounded border border-volti-accent/20">${dev.pin}</span>
+              </div>
+              <div class="flex items-center gap-4">
+                <input type="range" class="iot-dynamic-slider flex-grow accent-volti-accent" min="0" max="100" value="${dev.valor_actual}" data-id="${dev.id}" />
+                <span class="text-[10px] font-mono text-volti-accent w-8 text-right">${dev.valor_actual}%</span>
+              </div>
+            </div>
+          `;
+          break;
+        case 'ANALOG_IN':
+          controlHtml = `
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-volti-accent">${dev.valor_actual} units</span>
+                <span class="text-[9px] text-slate-500 bg-white/5 px-2 py-1 rounded">${dev.pin}</span>
+              </div>
+            </div>
+          `;
+          break;
+        case 'SERIAL':
+          controlHtml = `
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                <span class="text-[9px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 font-bold">SERIAL</span>
+              </div>
+              <div class="bg-black/40 p-2 rounded-lg border border-white/5 font-mono text-[10px] text-green-400 overflow-hidden h-12 flex flex-col-reverse">
+                <div>> Esperando datos...</div>
+                <div class="opacity-50">> Terminal serial lista (${dev.pin})</div>
+              </div>
+            </div>
+          `;
+          break;
+        case 'I2S':
+          controlHtml = `
+            <div class="flex items-center justify-between">
+              <div class="flex flex-col">
+                <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                <span class="text-[9px] text-slate-500">Bus I2S • Data Stream</span>
+              </div>
+              <div class="flex gap-1 h-6 items-end">
+                <div class="w-1 bg-volti-accent/40 animate-pulse h-2"></div>
+                <div class="w-1 bg-volti-accent/60 animate-pulse h-4" style="animation-delay: 0.2s"></div>
+                <div class="w-1 bg-volti-accent/80 animate-pulse h-5" style="animation-delay: 0.4s"></div>
+                <div class="w-1 bg-volti-accent animate-pulse h-3" style="animation-delay: 0.1s"></div>
+              </div>
+            </div>
+          `;
+          break;
+        default:
+          controlHtml = `<div class="text-[10px] text-slate-500 p-2 border border-dashed border-white/10 rounded-lg text-center">${dev.nombre} [${dev.tipo}]</div>`;
+      }
+      
+      card.innerHTML = controlHtml;
+      container.appendChild(card);
+    });
+
+    // 3. Agregar Event Listeners Dinámicos
+    setupDynamicListeners();
+
+  } catch(e) {
+    container.innerHTML = `<div class="text-red-400 text-xs p-4 text-center">Error al conectar con la base de datos IoT.</div>`;
+  }
+}
+
+function setupDynamicListeners() {
+    // Listeners para Toggles
+    document.querySelectorAll('.iot-dynamic-toggle').forEach(el => {
+        el.addEventListener('change', async (e) => {
+            const id = e.target.dataset.id;
+            const val = e.target.checked ? '1' : '0';
+            console.log(`📡 Orden dinámica: ${id} -> ${val}`);
+            await fetch('/api/hardware', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_dispositivo: id, estado_encendido: e.target.checked, valor: val })
+            });
+        });
+    });
+
+    // Listeners para Sliders
+    document.querySelectorAll('.iot-dynamic-slider').forEach(el => {
+        el.addEventListener('input', (e) => {
+            const span = e.target.nextElementSibling;
+            if(span) span.textContent = e.target.value + '%';
+        });
+        el.addEventListener('change', async (e) => {
+            const id = e.target.dataset.id;
+            const val = e.target.value;
+            await fetch('/api/hardware', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_dispositivo: id, poder_porcentaje: parseInt(val), valor: val })
+            });
+        });
+    });
+}
+
+// ==============================================================
+// 6. GRÁFICAS (CHART.JS)
 // ==============================================================
 function setupDashboardCharts() {
-  const generateData = () => Array.from({length: 12}, () => Math.floor(Math.random() * 40) + 30);
-
-  const ctxLoad = document.getElementById('loadChart').getContext('2d');
+  const ctxLoad = document.getElementById('loadChart')?.getContext('2d');
+  if(!ctxLoad) return;
+  
   new Chart(ctxLoad, {
     type: 'line',
     data: {
-      labels: ['00s', '05s', '10s', '15s', '20s', '25s', '30s', '35s', '40s', '45s', '50s', '55s'],
+      labels: ['00', '10', '20', '30', '40', '50'],
       datasets: [{
-        label: 'Carga Eléctrica (kW)',
-        data: generateData(),
+        label: 'Consumo',
+        data: [45, 52, 48, 61, 55, 63],
         borderColor: '#0db9f2',
-        backgroundColor: 'rgba(13, 185, 242, 0.1)',
-        fill: true,
-        tension: 0.4,
         borderWidth: 2,
+        fill: true,
+        backgroundColor: 'rgba(13, 185, 242, 0.05)',
+        tension: 0.4,
         pointRadius: 0
       }]
     },
@@ -157,144 +338,28 @@ function setupDashboardCharts() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: {
-        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } },
-        x: { grid: { display: false }, ticks: { color: '#64748b' } }
-      }
+      scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' } } }
     }
   });
 
-  const ctxThermal = document.getElementById('thermalChart').getContext('2d');
+  const ctxThermal = document.getElementById('thermalChart')?.getContext('2d');
+  if(!ctxThermal) return;
+
   new Chart(ctxThermal, {
     type: 'bar',
     data: {
-      labels: ['Sensor A', 'Sensor B', 'Chip C', 'Entrada', 'Salida', 'Afuera'],
+      labels: ['A', 'B', 'C', 'D'],
       datasets: [{
-        label: 'Grados °C',
-        data: [65, 72, 68, 24, 45, 22],
-        backgroundColor: [
-          'rgba(255, 75, 43, 0.6)', 'rgba(255, 75, 43, 0.8)', 'rgba(255, 75, 43, 0.6)',
-          'rgba(13, 185, 242, 0.6)', 'rgba(13, 185, 242, 0.8)', 'rgba(13, 185, 242, 0.6)'
-        ],
-        borderRadius: 4
+        data: [65, 78, 42, 55],
+        backgroundColor: '#0db9f2',
+        borderRadius: 5
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: {
-        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } },
-        x: { grid: { display: false }, ticks: { color: '#64748b' } }
-      }
+      scales: { x: { display: false }, y: { display: false } }
     }
   });
-
-  setTimeout(() => {
-    const syncPill = document.getElementById('sync-status');
-    if(syncPill) {
-      syncPill.textContent = "Data DB Local";
-      syncPill.className = "px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] font-bold rounded-full border border-green-500/20 uppercase";
-    }
-  }, 2000);
-}
-
-// ==============================================================
-// 6. COMUNICACIÓN DE HARDWARE IOT VIA CLOUDFLARE
-// ==============================================================
-async function setupHardwareControls() {
-  
-  // 1. Al cargar la pantalla, pedimos los datos actuales a la BD
-  try {
-    const res = await fetch('/api/hardware');
-    if (res.ok) {
-      const dbInfo = await res.json();
-      console.log("Datos Iot Cargados desde la BD:", dbInfo);
-      
-      // Actualizamos los interruptores en la pantalla segun la base de datos
-      dbInfo.datos_iot.forEach(disp => {
-        const toggle = document.getElementById(disp.id);
-        if (toggle) toggle.checked = disp.estado_encendido;
-        
-        // Asumiendo que los sliders se llaman igual que el id pero terminan diferente
-        const pureId = disp.id.split('-')[0]; // ej: de 'reactor-toggle' saca 'reactor'
-        const slider = document.getElementById(pureId + '-pwm');
-        if (slider) {
-            slider.value = disp.poder_porcentaje;
-            const span = document.getElementById(pureId + '-pwm-value');
-            if(span) span.textContent = disp.poder_porcentaje + '%';
-        }
-      });
-    }
-  } catch(e) { console.error("Error al cargar estado del IoT", e); }
-
-  // 2. Lógica para cuando tocas un interruptor
-  document.querySelectorAll('.iot-toggle').forEach(toggle => {
-    toggle.addEventListener('change', async (e) => {
-      const isTurnedOn = e.target.checked;
-      const deviceId = e.target.id;
-      // Obtener el slider correspondiente para guardar su valor actual tambien
-      const pureId = deviceId.split('-')[0];
-      const slider = document.getElementById(pureId + '-pwm');
-      const potenciaActual = slider ? parseInt(slider.value) : 0;
-      
-      console.log(`📡 Enviando orden: [${deviceId}] -> ${isTurnedOn ? 'ON' : 'OFF'}`);
-
-      await fetch('/api/hardware', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-           id_dispositivo: deviceId,
-           estado_encendido: isTurnedOn,
-           poder_porcentaje: potenciaActual
-        })
-      });
-    });
-  });
-
-  // 3. Lógica para potencias (Barras deslizantes)
-  document.querySelectorAll('.iot-slider').forEach(slider => {
-    slider.addEventListener('input', (e) => {
-      const valueSpan = document.getElementById(e.target.id + '-value');
-      if (valueSpan) valueSpan.textContent = e.target.value + '%';
-    });
-    
-    // Al soltar el click del ratón (change) manda a guardar
-    slider.addEventListener('change', async (e) => {
-      const powerValue = parseInt(e.target.value);
-      const pureId = e.target.id.split('-')[0]; // de "reactor-pwm" -> "reactor"
-      const toggleId = pureId + '-toggle';
-      const toggle = document.getElementById(toggleId);
-      const isOn = toggle ? toggle.checked : false;
-
-      console.log(`📡 Enviando orden de Potencia: [${pureId}] -> ${powerValue}%`);
-      
-      await fetch('/api/hardware', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-           id_dispositivo: toggleId,
-           estado_encendido: isOn,
-           poder_porcentaje: powerValue
-        })
-      });
-    });
-  });
-
-  // Marcadores Visuales Diagnósticos Extras
-  const pinContainer = document.getElementById('pin-status-container');
-  if(pinContainer) {
-    pinContainer.innerHTML = `
-      <div class="flex flex-col items-center p-3 rounded-xl bg-volti-accent/5 border border-volti-accent/20">
-        <div class="w-4 h-4 rounded-full bg-volti-accent shadow-[0_0_15px_#0db9f2] mb-2 ring-4 ring-volti-accent/10"></div>
-        <span class="text-[10px] uppercase font-bold text-white">Relé D1</span>
-        <span class="text-[10px] font-bold text-volti-accent mt-1">ON</span>
-      </div>
-      <div class="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5">
-        <div class="w-4 h-4 rounded-full bg-slate-800 mb-2 border border-slate-700"></div>
-        <span class="text-[10px] uppercase font-bold text-slate-500">Relé D2</span>
-        <span class="text-[10px] font-bold text-slate-600 mt-1">OFF</span>
-      </div>
-    `;
-  }
 }
