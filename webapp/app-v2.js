@@ -12,10 +12,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isDashboardPage = document.getElementById('iot-controls-container') !== null;
   const isConfigPage = document.getElementById('config-form') !== null;
   const isResetPage = document.getElementById('reset-password-form') !== null;
+  const isAdminPage = document.getElementById('table-area') !== null;
 
   if (isLoginPage) setupLogin();
   if (isRegisterPage) setupRegister();
   if (isResetPage) setupResetPassword();
+  if (isAdminPage) {
+    checkUserSession();
+    // La lógica de admin está embebida en admin.html por ahora para simplificar al usuario
+  }
   if (isDashboardPage) {
     checkUserSession();
     setupDashboardCharts();

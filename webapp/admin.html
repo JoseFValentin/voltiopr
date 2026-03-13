@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoltioPR - Admin DB</title>
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'volti-blue': '#0a192f',
+            'volti-accent': '#0db9f2',
+            'volti-glow': 'rgba(13, 185, 242, 0.3)',
+            'volti-red': '#ff4b2b',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+
+  <style>
+    /* Tabla premium con scrollbar personalizado */
+    .db-table-wrapper { overflow-x: auto; }
+    .db-table-wrapper::-webkit-scrollbar { height: 4px; }
+    .db-table-wrapper::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+    .db-table-wrapper::-webkit-scrollbar-thumb { background: #0db9f2; border-radius: 99px; }
+
+    .data-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+    .data-table thead th {
+      background: rgba(13,185,242,0.08);
+      color: #0db9f2;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(13,185,242,0.15);
+      white-space: nowrap;
+    }
+    .data-table tbody tr {
+      transition: background .15s;
+    }
+    .data-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+    .data-table tbody td {
+      padding: 9px 14px;
+      font-size: 11px;
+      color: #cbd5e1;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .data-table tbody td.pk-col { color: #0db9f2; font-weight: 700; font-family: monospace; }
+
+    .tab-btn { transition: all .2s; }
+    .tab-btn.active {
+      color: #0db9f2;
+      border-bottom: 2px solid #0db9f2;
+    }
+    .tab-btn:not(.active) { color: #64748b; border-bottom: 2px solid transparent; }
+    .tab-btn:hover:not(.active) { color: #94a3b8; }
+
+    /* Badge de tipo de columna */
+    .type-badge {
+      display: inline-block;
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      padding: 1px 6px;
+      border-radius: 99px;
+      border: 1px solid rgba(13,185,242,0.25);
+      color: #0db9f2;
+      background: rgba(13,185,242,0.07);
+    }
+
+    /* Modal */
+    #modal-overlay {
+      background: rgba(2,6,23,0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Toast */
+    #toast {
+      transition: opacity .3s, transform .3s;
+    }
+    #toast.hide { opacity: 0; transform: translateY(20px); pointer-events: none; }
+    #toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    /* animación de entrada de filas */
+    @keyframes fadeInRow {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .data-table tbody tr { animation: fadeInRow .15s ease both; }
+  </style>
+</head>
+<body class="p-3 md:p-6 text-sm min-h-screen">
+
+  <!-- FONDO ANIMADO -->
+  <div class="bg-animation">
+    <div class="absolute top-0 left-1/3 w-96 h-96 bg-volti-accent opacity-5 rounded-full blur-[120px]"></div>
+    <div class="absolute bottom-0 right-0 w-64 h-64 bg-purple-500 opacity-5 rounded-full blur-[100px]"></div>
+  </div>
+
+  <!-- NAVEGACIÓN PRINCIPAL -->
+  <nav class="main-nav max-w-7xl mx-auto px-4 md:px-0">
+    <div class="glass-panel rounded-2xl p-3 md:p-4 flex items-center justify-between border-volti-accent/20">
+
+      <!-- LOGO -->
+      <div class="flex items-center space-x-3">
+        <img src="logo.png" alt="VoltioPR" class="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full drop-shadow-[0_0_10px_#0db9f2]" />
+        <div class="hidden sm:block">
+          <h1 class="text-lg md:text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-volti-accent to-white leading-none">VOLTIOPR</h1>
+          <p class="text-[8px] uppercase tracking-widest text-volti-accent opacity-70">Blue Edition</p>
+        </div>
+      </div>
+
+      <!-- LINKS -->
+      <div class="flex items-center gap-5 md:gap-8">
+        <a href="dashboard.html" class="nav-link text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          Panel
+        </a>
+        <a href="config.html" class="nav-link text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          Pines
+        </a>
+        <a href="admin.html" class="nav-link active-link text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          Base&nbsp;de&nbsp;Datos
+        </a>
+        <a href="GUIA_DE_IMPLEMENTACION.md" target="_blank" class="nav-link text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.082.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.082.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          Ayuda
+        </a>
+      </div>
+
+      <!-- LOGOUT -->
+      <button id="btn-logout" class="group flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 px-3 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95">
+        <span class="hidden md:inline">SALIR</span>
+        <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="max-w-7xl mx-auto text-white space-y-5">
+
+    <!-- ENCABEZADO -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-volti-accent to-white">
+          Administrador de Base de Datos
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">Cloudflare D1 · <span id="db-name" class="text-volti-accent font-mono">voltiopr_db</span></p>
+      </div>
+      <button id="btn-reload" class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-4 py-2 border border-volti-accent/30 text-volti-accent rounded-xl hover:bg-volti-accent/10 transition self-start">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Recargar
+      </button>
+    </div>
+
+    <!-- RESUMEN DE TABLAS (cards superiores) -->
+    <div id="table-cards" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <!-- Se generan dinámicamente -->
+      <div class="glass-panel rounded-2xl p-4 animate-pulse">
+        <div class="h-3 bg-white/10 rounded w-1/2 mb-2"></div>
+        <div class="h-6 bg-white/10 rounded w-1/3"></div>
+      </div>
+    </div>
+
+    <!-- TABS DE TABLAS + CONTENIDO -->
+    <div class="glass-panel rounded-2xl overflow-hidden">
+
+      <!-- TAB BAR -->
+      <div id="tab-bar" class="flex gap-0 border-b border-white/5 px-4 pt-1 overflow-x-auto">
+        <!-- Se generan dinámicamente -->
+      </div>
+
+      <!-- TOOLBAR DE TABLA -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 border-b border-white/5">
+        <div class="flex items-center gap-2">
+          <span id="table-row-count" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="search-input" type="text" placeholder="Buscar en tabla..." class="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-volti-accent/50 w-48" />
+          <button id="btn-insert" class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest px-4 py-2 bg-volti-accent text-white rounded-xl hover:bg-volti-accent/80 transition neon-glow">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg>
+            Insertar
+          </button>
+        </div>
+      </div>
+
+      <!-- TABLA DE DATOS -->
+      <div id="table-area" class="db-table-wrapper min-h-48">
+        <div class="flex items-center justify-center h-48 opacity-30 text-xs">Selecciona una tabla arriba...</div>
+      </div>
+
+      <!-- PAGINACIÓN / INFO INFERIOR -->
+      <div class="px-4 py-2 border-t border-white/5 flex items-center justify-between">
+        <span id="table-footer-info" class="text-[10px] text-slate-500"></span>
+        <span class="text-[10px] text-slate-600">Máximo 500 registros mostrados</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: INSERTAR REGISTRO -->
+  <div id="modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <div class="glass-panel border border-volti-accent/20 rounded-2xl p-6 w-full max-w-md mx-4 relative">
+      <button id="modal-close" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </button>
+      <h3 id="modal-title" class="text-base font-bold text-white mb-4">Insertar Registro</h3>
+      <form id="insert-form" class="space-y-3">
+        <div id="insert-fields" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          <!-- Campos se generan dinámicamente -->
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button type="submit" class="flex-1 bg-volti-accent hover:bg-volti-accent/80 text-white font-bold py-2.5 rounded-xl text-sm transition neon-glow">
+            Guardar
+          </button>
+          <button type="button" id="modal-cancel" class="px-4 py-2.5 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-sm hover:bg-white/10 transition">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST DE NOTIFICACIONES -->
+  <div id="toast" class="hide fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl flex items-center gap-3">
+    <span id="toast-icon">✓</span>
+    <span id="toast-msg"></span>
+  </div>
+
+  <script type="module" src="app-v2.js"></script>
+
+  <script>
+  // ==============================================================
+  // ADMIN DB - LÓGICA COMPLETA DE LA PÁGINA
+  // ==============================================================
+
+  // ------ Estado global ------
+  let allTables    = [];      // schema de todas las tablas
+  let currentTable = null;   // tabla activa
+  let currentCols  = [];     // columnas de la tabla activa
+  let currentData  = [];     // datos cargados
+  let filteredData = [];     // datos filtrados por búsqueda
+
+  // ------ Helpers ------
+  function toast(msg, type = 'ok') {
+    const el  = document.getElementById('toast');
+    const icon = document.getElementById('toast-icon');
+    const txt  = document.getElementById('toast-msg');
+    icon.textContent = type === 'ok' ? '✓' : '✕';
+    txt.textContent  = msg;
+    el.className = `show fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl flex items-center gap-3 ${type === 'ok' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'}`;
+    setTimeout(() => { el.classList.remove('show'); el.classList.add('hide'); }, 3500);
+  }
+
+  function showModal(show) {
+    document.getElementById('modal-overlay').classList.toggle('hidden', !show);
+  }
+
+  // ------ Cargar schema de tablas ------
+  async function loadSchema() {
+    try {
+      const res  = await fetch('/api/admin');
+      allTables  = await res.json();
+      renderCards();
+      renderTabs();
+      if (allTables.length > 0) selectTable(allTables[0]);
+    } catch(e) {
+      toast('Error al conectar con la API: ' + e.message, 'err');
+    }
+  }
+
+  // ------ Cards de resumen (arriba) ------
+  function renderCards() {
+    const container = document.getElementById('table-cards');
+    container.innerHTML = allTables.map(t => `
+      <div onclick="selectTable(${JSON.stringify(t).replace(/"/g, '&quot;')})"
+           class="glass-panel rounded-2xl p-4 cursor-pointer hover:border-volti-accent/40 border border-transparent transition group"
+           title="Ver tabla ${t.name}">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="w-4 h-4 text-volti-accent opacity-60 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-volti-accent transition truncate">${t.name}</span>
+        </div>
+        <div class="text-2xl font-black text-white">${t.rows ?? '—'}</div>
+        <div class="text-[9px] text-slate-500 mt-0.5">${(t.columns || []).length} columnas</div>
+        ${t.error ? `<div class="text-[9px] text-red-400 mt-1">⚠ ${t.error}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  // ------ Tabs ------
+  function renderTabs() {
+    const bar = document.getElementById('tab-bar');
+    bar.innerHTML = allTables.map(t => `
+      <button id="tab-${t.name}"
+              onclick="selectTable(${JSON.stringify(t).replace(/"/g, '&quot;')})"
+              class="tab-btn px-5 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+        ${t.name}
+      </button>
+    `).join('');
+  }
+
+  // ------ Seleccionar tabla activa ------
+  window.selectTable = async function(tableInfo) {
+    currentTable = tableInfo.name;
+    currentCols  = tableInfo.columns || [];
+
+    // Activar tab
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const activeTab = document.getElementById('tab-' + tableInfo.name);
+    if (activeTab) activeTab.classList.add('active');
+
+    // Limpiar búsqueda
+    document.getElementById('search-input').value = '';
+
+    // Cargar datos
+    await loadTableData();
+  };
+
+  // ------ Cargar datos de tabla ------
+  async function loadTableData() {
+    if (!currentTable) return;
+    const area = document.getElementById('table-area');
+    area.innerHTML = `<div class="flex items-center justify-center h-32 opacity-20 text-xs">Cargando ${currentTable}...</div>`;
+
+    try {
+      const res = await fetch('/api/admin?table=' + currentTable);
+      currentData  = await res.json();
+      filteredData = [...currentData];
+
+      if (!Array.isArray(currentData)) throw new Error(currentData.error || 'Formato inesperado');
+
+      renderTable(filteredData);
+    } catch(e) {
+      area.innerHTML = `<div class="p-6 text-red-400 text-xs">Error: ${e.message}</div>`;
+    }
+  }
+
+  // ------ Renderizar tabla ------
+  function renderTable(rows) {
+    const area = document.getElementById('table-area');
+
+    // Obtener PK
+    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {}).name || 'id';
+
+    // Actualizar counters
+    document.getElementById('table-row-count').textContent = `${rows.length} registros · ${currentTable}`;
+    document.getElementById('table-footer-info').textContent = rows.length > 0
+      ? `PK: "${pk}" · ${currentCols.length} columnas`
+      : 'Tabla vacía';
+
+    if (rows.length === 0) {
+      area.innerHTML = `<div class="flex flex-col items-center justify-center h-32 opacity-30 gap-2">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+        <span class="text-xs">Sin registros en esta tabla</span>
+      </div>`;
+      return;
+    }
+
+    const headers = Object.keys(rows[0]);
+
+    area.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            ${headers.map(h => `<th>${h}</th>`).join('')}
+            <th style="width:60px;">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-data">
+          ${rows.map((row, idx) => `
+            <tr style="animation-delay:${idx * 0.02}s">
+              ${headers.map(h => `<td class="${h === pk ? 'pk-col' : ''}" title="${String(row[h] ?? '')}">
+                ${row[h] !== null && row[h] !== undefined ? String(row[h]) : '<span class="opacity-25 italic text-[10px]">null</span>'}
+              </td>`).join('')}
+              <td>
+                <button onclick="deleteRow('${row[pk]}')"
+                        title="Eliminar registro"
+                        class="p-1.5 text-red-400/50 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  // ------ Búsqueda en tabla ------
+  document.getElementById('search-input').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    if (!q) {
+      filteredData = [...currentData];
+    } else {
+      filteredData = currentData.filter(row =>
+        Object.values(row).some(v => String(v ?? '').toLowerCase().includes(q))
+      );
+    }
+    renderTable(filteredData);
+  });
+
+  // ------ Recargar ------
+  document.getElementById('btn-reload').addEventListener('click', async () => {
+    await loadSchema();
+    toast('Datos actualizados');
+  });
+
+  // ------ Eliminar fila ------
+  window.deleteRow = async function(id) {
+    if (!confirm(`¿Eliminar el registro con ID "${id}" de la tabla "${currentTable}"?\n\nEsta acción no se puede deshacer.`)) return;
+
+    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {}).name || 'id';
+
+    try {
+      const res = await fetch(`/api/admin?table=${currentTable}&id=${encodeURIComponent(id)}&pk=${pk}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast(`Registro eliminado de "${currentTable}"`);
+      await loadTableData();
+    } catch(e) {
+      toast('Error: ' + e.message, 'err');
+    }
+  };
+
+  // ------ Modal de Insertar ------
+  document.getElementById('btn-insert').addEventListener('click', () => {
+    if (!currentTable || currentCols.length === 0) {
+      toast('Selecciona una tabla primero', 'err');
+      return;
+    }
+
+    const fieldsContainer = document.getElementById('insert-fields');
+    document.getElementById('modal-title').textContent = `Insertar en "${currentTable}"`;
+
+    // Generar campos basados en columnas (saltar PK autoincrement)
+    const editableCols = currentCols.filter(c => !(c.pk && c.type === 'INTEGER'));
+
+    if (editableCols.length === 0) {
+      toast('Esta tabla no tiene campos editables', 'err');
+      return;
+    }
+
+    fieldsContainer.innerHTML = editableCols.map(col => `
+      <div class="space-y-1">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          ${col.name}
+          <span class="type-badge">${col.type || 'TEXT'}</span>
+          ${col.pk ? '<span class="text-volti-accent text-[8px]">PK</span>' : ''}
+        </label>
+        <input
+          type="${col.type === 'INTEGER' || col.type === 'BOOLEAN' ? 'number' : col.type === 'DATETIME' ? 'datetime-local' : 'text'}"
+          name="${col.name}"
+          placeholder="${col.name}"
+          class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-volti-accent/50 focus:border-volti-accent/50"
+        />
+      </div>
+    `).join('');
+
+    showModal(true);
+  });
+
+  document.getElementById('modal-close').addEventListener('click', () => showModal(false));
+  document.getElementById('modal-cancel').addEventListener('click', () => showModal(false));
+
+  // ------ Submit del formulario de insertar ------
+  document.getElementById('insert-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = {};
+    for (const [key, val] of formData.entries()) {
+      if (val.trim() !== '') data[key] = val.trim();
+    }
+
+    if (Object.keys(data).length === 0) {
+      toast('Completa al menos un campo', 'err');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: currentTable, data })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      toast(result.mensaje || 'Registro insertado');
+      showModal(false);
+      await loadTableData();
+    } catch(e) {
+      toast('Error: ' + e.message, 'err');
+    }
+  });
+
+  // ------ Cerrar modal con Escape ------
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') showModal(false);
+  });
+
+  // ------ Iniciar ------
+  loadSchema();
+  </script>
+</body>
+</html>
