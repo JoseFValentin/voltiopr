@@ -23,5 +23,5 @@ pages_build_output_dir = "webapp"
 [[d1_databases]]
 binding = "DB"              # El nombre interno que usaremos en el código (como un apodo)
 database_name = "voltiopr_db" # El nombre real de la base de datos en la nube
-database_id = ""            # IMPORTANTE: Aquí irá el ID único de tu BD cuando la creemos en Cloudflare. Por ahora se queda vacío.
+database_id = "051a9627-52b5-450a-8dac-370df72e77f4" # ID generado por Cloudflare
 preview_database_id = "DB"  # ID para pruebas locales
