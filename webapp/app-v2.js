@@ -1,17 +1,19 @@
-/*
-  ==============================================================
-  VOLTIOPR - LÓGICA DE APLICACIÓN DINÁMICA
+  VOLTIOPR - LÓGICA DE APLICACIÓN DINÁMICA (VERSIÓN 2.0)
   ==============================================================
 */
+console.log("🚀 VoltioPR App JS cargado - Versión 2.0");
+
 
 document.addEventListener('DOMContentLoaded', async () => {
   const isLoginPage = document.getElementById('login-form') !== null;
   const isRegisterPage = document.getElementById('register-form') !== null;
   const isDashboardPage = document.getElementById('iot-controls-container') !== null;
   const isConfigPage = document.getElementById('config-form') !== null;
+  const isResetPage = document.getElementById('reset-password-form') !== null;
 
   if (isLoginPage) setupLogin();
   if (isRegisterPage) setupRegister();
+  if (isResetPage) setupResetPassword();
   if (isDashboardPage) {
     checkUserSession();
     setupDashboardCharts();
@@ -46,6 +48,11 @@ function checkUserSession() {
 function setupLogin() {
   const form = document.getElementById('login-form');
   const errorMsg = document.getElementById('error-message');
+  
+  // Mostrar banner de cookies si no existe consentimiento
+  if (!localStorage.getItem('voltiopr_cookies_consent')) {
+    showCookieBanner();
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -53,22 +60,156 @@ function setupLogin() {
     const password = document.getElementById('password').value;
     errorMsg.classList.add('hidden');
 
+    // Capturar metadata básica
+    const metadata = {
+      userAgent: navigator.userAgent,
+      consentCookies: localStorage.getItem('voltiopr_cookies_consent') === 'true'
+    };
+
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, metadata })
       });
+      
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      
+      if (!response.ok) {
+        if (data.redirect) {
+          errorMsg.innerHTML = `${data.message} <a href="${data.redirect}" class="underline font-bold">Ir al Registro</a>`;
+        } else {
+          errorMsg.textContent = data.error;
+        }
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+
       localStorage.setItem('voltiopr_session', data.token);
       localStorage.setItem('voltiopr_user', data.usuario);
       window.location.href = 'dashboard.html';
     } catch (err) {
-      errorMsg.textContent = err.message;
+      errorMsg.textContent = "Error de conexión. Inténtalo de nuevo.";
       errorMsg.classList.remove('hidden');
     }
   });
+
+  // Setup botón olvidar contraseña
+  const btnForgot = document.getElementById('btn-forgot-password');
+  if (btnForgot) {
+    btnForgot.addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      if (!email) {
+        errorMsg.textContent = "Escribe tu correo primero para enviarte el código.";
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+      
+      btnForgot.disabled = true;
+      btnForgot.textContent = "Enviando...";
+
+      try {
+        const response = await fetch('/api/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+           alert(data.mensaje);
+           localStorage.setItem('reset_email_temp', email);
+           window.location.href = 'reset-password.html';
+        } else if (data.token_debug) {
+           // Falló el envío pero tenemos el código (Modo Simulación Inteligente)
+           alert(`MODO DE PRUEBA: El servicio de email aún no tiene permiso de tu dominio (DNS propagándose).\n\nTU CÓDIGO ES: ${data.token_debug}\n\nÚsalo en la siguiente pantalla.`);
+           localStorage.setItem('reset_email_temp', email);
+           window.location.href = 'reset-password.html';
+        } else {
+           errorMsg.textContent = data.error || "Error al solicitar el código.";
+           errorMsg.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorMsg.textContent = "Error al conectar con el servicio de correo.";
+        errorMsg.classList.remove('hidden');
+      } finally {
+        btnForgot.disabled = false;
+        btnForgot.textContent = "¿Olvidaste tu contraseña?";
+      }
+    });
+  }
+}
+
+// ==============================================================
+// 2.5 RESTAURAR CONTRASEÑA
+// ==============================================================
+function setupResetPassword() {
+  const form = document.getElementById('reset-password-form');
+  const emailInput = document.getElementById('reset-email');
+  const errorMsg = document.getElementById('reset-error-message');
+  const successMsg = document.getElementById('reset-success-message');
+
+  // Recuperar el email que guardamos en el paso anterior
+  const savedEmail = localStorage.getItem('reset_email_temp');
+  if (savedEmail) {
+    emailInput.value = savedEmail;
+  } else {
+    window.location.href = 'index.html';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = document.getElementById('reset-token').value;
+    const newPassword = document.getElementById('new-password').value;
+
+    try {
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: savedEmail, token, newPassword })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        successMsg.textContent = data.mensaje;
+        successMsg.classList.remove('hidden');
+        localStorage.removeItem('reset_email_temp');
+        setTimeout(() => { window.location.href = 'index.html'; }, 3000);
+      } else {
+        errorMsg.textContent = data.error;
+        errorMsg.classList.remove('hidden');
+      }
+    } catch (err) {
+      errorMsg.textContent = "Error de conexión.";
+      errorMsg.classList.remove('hidden');
+    }
+  });
+}
+
+function showCookieBanner() {
+  const banner = document.createElement('div');
+  banner.className = "fixed bottom-4 left-4 right-4 bg-slate-900 border border-volti-accent/30 p-4 rounded-2xl z-50 flex flex-col md:flex-row items-center justify-between gap-4 glass-panel";
+  banner.innerHTML = `
+    <div class="text-xs text-slate-300">
+      <span class="font-bold text-volti-accent">Cookies:</span> Usamos cookies para mejorar tu experiencia y seguridad en VoltioPR.
+    </div>
+    <div class="flex gap-2">
+      <button id="accept-cookies" class="bg-volti-accent text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest">Aceptar</button>
+      <button id="decline-cookies" class="bg-white/5 text-white/50 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-white/10">Rechazar</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+  
+  document.getElementById('accept-cookies').onclick = () => {
+    localStorage.setItem('voltiopr_cookies_consent', 'true');
+    banner.remove();
+  };
+  document.getElementById('decline-cookies').onclick = () => {
+    localStorage.setItem('voltiopr_cookies_consent', 'false');
+    banner.remove();
+  };
 }
 
 // ==============================================================
