@@ -8,9 +8,11 @@
 --   npx wrangler d1 execute voltiopr_db --remote --file=db/migration_v2.sql
 
 -- 1. Agregar columnas de reset de contraseña a la tabla usuarios
---    (Si ya existen, SQLite no da error con esta sintaxis)
-ALTER TABLE usuarios ADD COLUMN reset_token TEXT;
-ALTER TABLE usuarios ADD COLUMN reset_token_expiry TEXT;
+--    NOTA: Si ya existen, ejecutar individualmente. SQLite no tiene IF NOT EXISTS para ALTER TABLE.
+--    Si aparece "duplicate column name", significa que ya se agregaron antes (OK).
+-- ALTER TABLE usuarios ADD COLUMN reset_token TEXT;
+-- ALTER TABLE usuarios ADD COLUMN reset_token_expiry TEXT;
+-- (Columnas ya existentes en producción, líneas comentadas para referencia)
 
 -- 2. Crear tabla para guardar metadata de sesiones (IP, navegador, cookies)
 CREATE TABLE IF NOT EXISTS user_metadata (
