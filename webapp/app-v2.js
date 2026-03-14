@@ -34,11 +34,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkUserSession();
     setupConfig();
   }
+
+  // Cargar Tema
+  initTheme();
 });
 
 // ==============================================================
 // 0. FUNCIONES GLOBALES DE UI
 // ==============================================================
+
+function initTheme() {
+  const savedTheme = localStorage.getItem('voltiopr_theme') || 'dark';
+  if (savedTheme === 'light') {
+    document.body.classList.add('light-mode');
+  }
+
+  const btnTheme = document.getElementById('btn-theme-toggle');
+  if (btnTheme) {
+    btnTheme.addEventListener('click', () => {
+      const isLight = document.body.classList.toggle('light-mode');
+      localStorage.setItem('voltiopr_theme', isLight ? 'light' : 'dark');
+      showToast(`Modo ${isLight ? 'Claro' : 'Oscuro'} activado`, 'info');
+    });
+  }
+}
+
+/**
+ * Muestra una notificación elegante (Toast)
+ * @param {string} message 
+ * @param {string} type 'success' | 'error' | 'info'
+ */
+function showToast(message, type = 'info') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+  
+  toast.innerHTML = `
+    <div class="toast-icon">${icon}</div>
+    <div class="text-xs font-medium">${message}</div>
+  `;
+
+  container.appendChild(toast);
+  
+  // Trigger animation
+  setTimeout(() => toast.classList.add('show'), 10);
+  
+  // Auto remove
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
 function initPasswordToggles() {
   document.querySelectorAll('.toggle-password').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -116,20 +171,22 @@ function setupLogin() {
       
       if (!response.ok) {
         if (data.redirect) {
+          showToast(data.message, 'info');
+          // Opcional: Podríamos redirigir automáticamente o dar el link
           errorMsg.innerHTML = `${data.message} <a href="${data.redirect}" class="underline font-bold">Ir al Registro</a>`;
+          errorMsg.classList.remove('hidden');
         } else {
-          errorMsg.textContent = data.error;
+          showToast(data.error, 'error');
         }
-        errorMsg.classList.remove('hidden');
         return;
       }
 
+      showToast(`¡Bienvenido de vuelta, ${data.usuario}!`, 'success');
       localStorage.setItem('voltiopr_session', data.token);
       localStorage.setItem('voltiopr_user', data.usuario);
-      window.location.href = 'dashboard.html';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
     } catch (err) {
-      errorMsg.textContent = "Error de conexión. Inténtalo de nuevo.";
-      errorMsg.classList.remove('hidden');
+      showToast("Error de conexión. Inténtalo de nuevo.", "error");
     }
   });
 
@@ -157,21 +214,19 @@ function setupLogin() {
         const data = await response.json();
         
         if (response.ok && data.success) {
-           alert(data.mensaje);
+           showToast(data.mensaje, 'success');
            localStorage.setItem('reset_email_temp', email);
-           window.location.href = 'reset-password.html';
+           setTimeout(() => { window.location.href = 'reset-password.html'; }, 2000);
         } else if (data.token_debug) {
            // Falló el envío pero tenemos el código (Modo Simulación Inteligente)
-           alert(`MODO DE PRUEBA: El servicio de email aún no tiene permiso de tu dominio (DNS propagándose).\n\nTU CÓDIGO ES: ${data.token_debug}\n\nÚsalo en la siguiente pantalla.`);
+           showToast(`CÓDIGO DE PRUEBA: ${data.token_debug}`, 'info');
            localStorage.setItem('reset_email_temp', email);
-           window.location.href = 'reset-password.html';
+           setTimeout(() => { window.location.href = 'reset-password.html'; }, 3000);
         } else {
-           errorMsg.textContent = data.error || "Error al solicitar el código.";
-           errorMsg.classList.remove('hidden');
+           showToast(data.error || "Error al solicitar el código.", 'error');
         }
       } catch (err) {
-        errorMsg.textContent = "Error al conectar con el servicio de correo.";
-        errorMsg.classList.remove('hidden');
+        showToast("Error al conectar con el servicio de correo.", 'error');
       } finally {
         btnForgot.disabled = false;
         btnForgot.textContent = "¿Olvidaste tu contraseña?";
@@ -212,17 +267,14 @@ function setupResetPassword() {
       const data = await response.json();
 
       if (response.ok) {
-        successMsg.textContent = data.mensaje;
-        successMsg.classList.remove('hidden');
+        showToast(data.mensaje, 'success');
         localStorage.removeItem('reset_email_temp');
-        setTimeout(() => { window.location.href = 'index.html'; }, 3000);
+        setTimeout(() => { window.location.href = 'index.html'; }, 2000);
       } else {
-        errorMsg.textContent = data.error;
-        errorMsg.classList.remove('hidden');
+        showToast(data.error, 'error');
       }
     } catch (err) {
-      errorMsg.textContent = "Error de conexión.";
-      errorMsg.classList.remove('hidden');
+      showToast("Error de conexión.", 'error');
     }
   });
 }
@@ -280,12 +332,11 @@ function setupRegister() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      successMsg.textContent = data.mensaje;
-      successMsg.classList.remove('hidden');
+      
+      showToast(data.mensaje, 'success');
       setTimeout(() => { window.location.href = 'index.html'; }, 2000);
     } catch (err) {
-      errorMsg.textContent = err.message;
-      errorMsg.classList.remove('hidden');
+      showToast(err.message, 'error');
     }
   });
 }
@@ -321,8 +372,13 @@ async function setupConfig() {
 
   window.deletePin = async (id) => {
     if (confirm('¿Eliminar esta configuración?')) {
-        await fetch(`/api/config?id=${id}`, { method: 'DELETE' });
-        loadPines();
+        const res = await fetch(`/api/config?id=${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          showToast('Configuración eliminada', 'info');
+          loadPines();
+        } else {
+          showToast('Error al eliminar', 'error');
+        }
     }
   };
 
@@ -343,8 +399,11 @@ async function setupConfig() {
     });
     
     if (res.ok) {
+        showToast('Dispositivo configurado con éxito', 'success');
         form.reset();
         loadPines();
+    } else {
+        showToast('Error al guardar configuración', 'error');
     }
   });
 
@@ -356,23 +415,48 @@ async function setupConfig() {
 // ==============================================================
 async function setupHardwareControls() {
   const container = document.getElementById('iot-controls-container');
+  const statusCont = document.getElementById('device-status-container');
   
+  // Mostrar Skeletons mientras carga
+  container.innerHTML = Array(3).fill(0).map(() => `
+    <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+            <div class="h-4 w-24 skeleton"></div>
+            <div class="h-5 w-10 rounded-full skeleton"></div>
+        </div>
+        <div class="h-2 w-full skeleton opacity-50"></div>
+    </div>
+  `).join('');
+
   try {
     // 1. Obtener la configuración
     const configRes = await fetch('/api/config');
     const config = await configRes.json();
     
+    // Simular un pequeño delay para que el usuario vea que la app es reactiva (opcional pro-feel)
+    // await new Promise(r => setTimeout(r, 800));
+
     if (config.length === 0) {
         container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs italic">No hay dispositivos configurados. Ve a "Configurar ESP" para añadir uno.</div>`;
         return;
     }
 
-    container.innerHTML = ''; // Limpiar cargando
+    container.innerHTML = ''; // Limpiar skeletons
+
+    // Actualizar indicador de conectividad (Simulado por ahora para diseño)
+    if (statusCont) {
+      statusCont.innerHTML = `
+        <div class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+            <span class="status-indicator status-online"></span>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300">ESP32 Online</span>
+        </div>
+      `;
+    }
 
     // 2. Renderizar cada dispositivo según su tipo
     config.forEach(dev => {
       const card = document.createElement('div');
-      card.className = "p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2";
+      card.className = "p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2 hover:border-voltio/30 transition-all duration-300 group";
       
       let controlHtml = '';
       

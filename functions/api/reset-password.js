@@ -2,6 +2,8 @@
 // BACKEND: RESTABLECER CONTRASEÑA (RESET PASSWORD)
 // ==============================================================
 
+import { hashPassword } from './utils.js';
+
 export async function onRequestPost({ request, env }) {
   try {
     const { email, token, newPassword } = await request.json();
@@ -32,12 +34,13 @@ export async function onRequestPost({ request, env }) {
 
     const userId = results[0].id;
 
-    // 2. Actualizar contraseña y limpiar el token
+    // 2. Actualizar contraseña (HASHEADA) y limpiar el token
+    const hashed = await hashPassword(newPassword);
     await env.DB.prepare(`
       UPDATE usuarios 
       SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL 
       WHERE id = ?
-    `).bind(newPassword, userId).run();
+    `).bind(hashed, userId).run();
 
     return new Response(JSON.stringify({ 
       success: true, 

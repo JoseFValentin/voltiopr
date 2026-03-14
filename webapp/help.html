@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoltioPR - Centro de Ayuda</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'volti-blue': '#0a192f',
+            'volti-accent': '#0db9f2',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="p-3 md:p-6 text-sm">
+  <div class="bg-animation">
+    <div class="absolute top-0 right-0 w-80 h-80 bg-volti-accent opacity-5 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-0 left-0 w-64 h-64 bg-volti-accent opacity-5 rounded-full blur-[100px]"></div>
+  </div>
+
+  <nav class="main-nav max-w-7xl mx-auto px-4 md:px-0">
+    <div class="glass-panel rounded-2xl p-3 md:p-4 flex items-center justify-between border-volti-accent/20">
+      <div class="flex items-center space-x-3">
+        <img src="logo.png" alt="VoltioPR" class="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full drop-shadow-[0_0_10px_#0db9f2]" />
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-volti-accent to-white">VOLTIOPR</h1>
+      </div>
+      <div class="flex items-center gap-6">
+        <a href="dashboard.html" class="nav-link text-xs font-bold uppercase tracking-wider">Panel</a>
+        <a href="config.html" class="nav-link text-xs font-bold uppercase tracking-wider">Pines</a>
+        <a href="help.html" class="nav-link active-link text-xs font-bold uppercase tracking-wider">Ayuda</a>
+      </div>
+      <button id="btn-theme-toggle" class="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-slate-400 hover:text-volti-accent">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto space-y-8 pb-12">
+    <header class="text-center space-y-4">
+      <h2 class="text-3xl font-bold">Centro de Ayuda VoltioPR</h2>
+      <p class="text-slate-400">Guía rápida para conectar y configurar tu ecosistema IoT</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section class="glass-panel rounded-3xl p-6 space-y-4">
+        <div class="text-volti-accent bg-volti-accent/10 w-12 h-12 rounded-xl flex items-center justify-center p-3">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        </div>
+        <h3 class="text-xl font-bold">Primeros Pasos</h3>
+        <p class="text-slate-400 text-xs leading-relaxed">Conecta tu ESP32/NodeMCU a la red Wi-Fi y asegúrate de que el firmware tenga las credenciales correctas. Las órdenes se envían mediante la API en la nube.</p>
+      </section>
+
+      <section class="glass-panel rounded-3xl p-6 space-y-4">
+        <div class="text-green-400 bg-green-400/10 w-12 h-12 rounded-xl flex items-center justify-center p-3">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        </div>
+        <h3 class="text-xl font-bold">Seguridad Premium</h3>
+        <p class="text-slate-400 text-xs leading-relaxed">Tus contraseñas están protegidas con el algoritmo <strong>PBKDF2</strong>. Nadie, ni siquiera los administradores del sistema, pueden ver tu contraseña real.</p>
+      </section>
+    </div>
+
+    <section class="glass-panel rounded-3xl p-8 space-y-6">
+      <h3 class="text-xl font-bold border-b border-white/5 pb-4">Preguntas Frecuentes</h3>
+      
+      <div class="space-y-4">
+        <details class="group bg-white/5 rounded-2xl p-4 border border-white/5">
+          <summary class="list-none flex justify-between items-center cursor-pointer font-bold text-xs uppercase tracking-wider">
+            ¿Cómo añado un nuevo botón?
+            <span class="text-volti-accent transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-4 text-slate-400 text-xs">Ve a la sección "Pines", rellena el nombre, el pin GPIO que vas a usar y el tipo de señal (Switch, Slider, etc.).</p>
+        </details>
+
+        <details class="group bg-white/5 rounded-2xl p-4 border border-white/5">
+          <summary class="list-none flex justify-between items-center cursor-pointer font-bold text-xs uppercase tracking-wider">
+            ¿Por qué dice "ESP32 Offline"?
+            <span class="text-volti-accent transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-4 text-slate-400 text-xs">Asegúrate de que tu dispositivo tenga corriente y acceso a internet. Revisa el Terminal Serial en el código de Arduino para ver posibles errores de conexión.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app-v2.js"></script>
+</body>
+</html>

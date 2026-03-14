@@ -6,6 +6,8 @@
 // "Quiero abrir una cuenta nueva". Toma los datos del papel y
 // los guarda en las gavetas de nuestra Base de Datos (DB) D1.
 
+import { hashPassword } from './utils.js';
+
 export async function onRequestPost({ request, env }) {
   try {
     // 1. Agarramos lo que el usuario rellenó
@@ -29,9 +31,10 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
-    // 3. Todo en orden, guardamos al nuevo usuario en la base de datos
+    // 3. Todo en orden, hasheamos la contraseña y guardamos
+    const hashed = await hashPassword(password);
     const stmt = env.DB.prepare('INSERT INTO usuarios (username, email, password_hash) VALUES (?, ?, ?)');
-    await stmt.bind(username, email, password).run();
+    await stmt.bind(username, email, hashed).run();
 
     // 4. Respondemos con alegría que todo fue un éxito
     return new Response(JSON.stringify({ 

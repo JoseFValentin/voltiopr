@@ -7,6 +7,8 @@
 // clic en "Iniciar Sesión", revisar si sus datos existen en nuestra
 // base de datos (DB), y decirle a la pantalla si lo deja pasar o no.
 
+import { hashPassword, verifyPassword } from './utils.js';
+
 // Cuando llega una petición POST a '/api/login', se ejecuta esta función
 export async function onRequestPost({ request, env }) {
   try {
@@ -38,8 +40,20 @@ export async function onRequestPost({ request, env }) {
 
     const usuario = results[0];
 
-    // 3. Validar Contraseña (IMPORTANTE: Actualmente usa texto plano según schema, pero validamos exactitud)
-    if (usuario.password_hash !== password) {
+    // 3. Validar Contraseña (PBKDF2 con fallback para texto plano y Auto-Upgrade)
+    let isCorrect = await verifyPassword(password, usuario.password_hash);
+    
+    if (!isCorrect && usuario.password_hash === password) {
+      // Es un usuario antiguo con texto plano -> Actualizar a Hash automáticamente
+      isCorrect = true;
+      const newHash = await hashPassword(password);
+      await env.DB.prepare('UPDATE usuarios SET password_hash = ? WHERE id = ?')
+        .bind(newHash, usuario.id)
+        .run();
+      console.log(`🛡️ Seguridad aumentada para usuario ${usuario.username} (migración a hash exitosa)`);
+    }
+
+    if (!isCorrect) {
       return new Response(JSON.stringify({ error: "La contraseña es incorrecta" }), { 
         status: 401,
         headers: { 'Content-Type': 'application/json' }
