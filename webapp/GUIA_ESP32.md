@@ -45,6 +45,7 @@ En este ejemplo, configuraremos un LED para variar su brillo desde la web de Vol
 const char* ssid = "TU_WIFI";
 const char* password = "TU_PASSWORD";
 const char* host = "https://tu-app.voltiopr.pages.dev/api/hardware?id=esp32_central_01";
+const char* apiKey = "v0ltio_Acc3ss_2026_Secur3"; // Llave de acceso configurada en el servidor
 
 // Configuración PWM ESP32
 const int ledPin = 4; // GPIO 4 (Vínculo con la Web)
@@ -67,6 +68,7 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin(host);
+    http.addHeader("X-API-KEY", apiKey); // Enviar llave de acceso
     
     int httpCode = http.GET();
     if (httpCode > 0) {

@@ -576,7 +576,10 @@ function setupDynamicListeners() {
             console.log(`📡 Orden dinámica: ${id} -> ${val}`);
             await fetch('/api/hardware', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': 'v0ltio_Acc3ss_2026_Secur3'
+                },
                 body: JSON.stringify({ id_dispositivo: id, estado_encendido: e.target.checked, valor: val })
             });
         });
@@ -593,7 +596,10 @@ function setupDynamicListeners() {
             const val = e.target.value;
             await fetch('/api/hardware', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': 'v0ltio_Acc3ss_2026_Secur3'
+                },
                 body: JSON.stringify({ id_dispositivo: id, poder_porcentaje: parseInt(val), valor: val })
             });
         });

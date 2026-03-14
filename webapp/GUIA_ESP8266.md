@@ -47,7 +47,8 @@ Asegúrate de tener instalada la librería `ArduinoJson` y configurar tu WiFi.
 
 const char* ssid = "TU_WIFI";
 const char* password = "TU_PASSWORD";
-const char* api_url = "https://tu-app.voltiopr.pages.dev/api/hardware?id=esp8266_luz_1";
+const char* api_url = "/api/hardware?id=esp8266_luz_1";
+const char* apiKey = "v0ltio_Acc3ss_2026_Secur3";
 
 void setup() {
   Serial.begin(115200);
@@ -61,8 +62,9 @@ void loop() {
     
     // Obtener estado desde VoltioPR
     if (client.connect("tu-app.voltiopr.pages.dev", 443)) {
-      client.print(String("GET ") + "/api/hardware?id=esp8266_luz_1 HTTP/1.1\r\n" +
+      client.print(String("GET ") + api_url + " HTTP/1.1\r\n" +
                    "Host: tu-app.voltiopr.pages.dev\r\n" +
+                   "X-API-KEY: " + apiKey + "\r\n" + 
                    "Connection: close\r\n\r\n");
                    
       // Leer respuesta y aplicar al pin
