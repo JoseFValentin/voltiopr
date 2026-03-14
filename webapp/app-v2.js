@@ -44,17 +44,41 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ==============================================================
 
 function initTheme() {
-  const savedTheme = localStorage.getItem('voltiopr_theme') || 'dark';
-  if (savedTheme === 'light') {
-    document.body.classList.add('light-mode');
+  const setTheme = (theme) => {
+    if (theme === 'light') {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+  };
+
+  // 1. Determinar el tema inicial
+  const savedTheme = localStorage.getItem('voltiopr_theme');
+  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+  if (savedTheme) {
+    setTheme(savedTheme);
+  } else {
+    // Si no hay preferencia guardada, seguir al sistema
+    setTheme(systemPrefersDark.matches ? 'dark' : 'light');
   }
 
+  // 2. Escuchar cambios en el sistema (Auto-update)
+  systemPrefersDark.addEventListener('change', (e) => {
+    // Solo actualizamos automáticamente si el usuario no ha fijado una preferencia manual
+    if (!localStorage.getItem('voltiopr_theme')) {
+      setTheme(e.matches ? 'dark' : 'light');
+    }
+  });
+
+  // 3. Manejar el botón manual del menú
   const btnTheme = document.getElementById('btn-theme-toggle');
   if (btnTheme) {
     btnTheme.addEventListener('click', () => {
       const isLight = document.body.classList.toggle('light-mode');
-      localStorage.setItem('voltiopr_theme', isLight ? 'light' : 'dark');
-      showToast(`Modo ${isLight ? 'Claro' : 'Oscuro'} activado`, 'info');
+      const newTheme = isLight ? 'light' : 'dark';
+      localStorage.setItem('voltiopr_theme', newTheme);
+      showToast(`Modo ${isLight ? 'Claro' : 'Oscuro'} activado manualmente`, 'info');
     });
   }
 }
