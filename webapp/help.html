@@ -19,14 +19,14 @@
   </script>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="p-3 md:p-6 text-sm">
+<body class="p-2 md:p-3 text-xs">
   <div class="bg-animation">
     <div class="absolute top-0 right-0 w-80 h-80 bg-volti-accent opacity-5 rounded-full blur-[100px]"></div>
     <div class="absolute bottom-0 left-0 w-64 h-64 bg-volti-accent opacity-5 rounded-full blur-[100px]"></div>
   </div>
 
   <nav class="main-nav max-w-7xl mx-auto px-4 md:px-0">
-    <div class="glass-panel rounded-2xl p-3 md:p-4 flex items-center justify-between border-volti-accent/20">
+    <div class="glass-panel rounded-xl p-2 md:p-4 flex items-center justify-between border-volti-accent/20">
       <div class="flex items-center space-x-3">
         <img src="logo.png" alt="VoltioPR" class="w-12 h-12 md:w-14 md:h-14 object-contain drop-shadow-[0_0_15px_#0db9f2] rounded-lg hover:scale-110 transition-transform duration-300" />
         <h1 class="text-lg md:text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-volti-accent to-white">VOLTIOPR</h1>
@@ -43,13 +43,13 @@
   </nav>
 
   <main class="max-w-4xl mx-auto space-y-8 pb-12">
-    <header class="text-center space-y-4">
+    <header class="text-center space-y-3">
       <h2 class="text-3xl font-bold">Centro de Ayuda VoltioPR</h2>
       <p class="text-slate-400">Guía rápida para conectar y configurar tu ecosistema IoT</p>
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <section class="glass-panel rounded-3xl p-6 space-y-4">
+      <section class="glass-panel rounded-3xl p-6 space-y-3">
         <div class="text-volti-accent bg-volti-accent/10 w-12 h-12 rounded-xl flex items-center justify-center p-3">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
         </div>
@@ -57,7 +57,7 @@
         <p class="text-slate-400 text-xs leading-relaxed">Conecta tu ESP32/NodeMCU a la red Wi-Fi y asegúrate de que el firmware tenga las credenciales correctas. Las órdenes se envían mediante la API en la nube.</p>
       </section>
 
-      <section class="glass-panel rounded-3xl p-6 space-y-4">
+      <section class="glass-panel rounded-3xl p-6 space-y-3">
         <div class="text-green-400 bg-green-400/10 w-12 h-12 rounded-xl flex items-center justify-center p-3">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
         </div>
@@ -69,8 +69,8 @@
     <section class="glass-panel rounded-3xl p-8 space-y-6">
       <h3 class="text-xl font-bold border-b border-white/5 pb-4">Preguntas Frecuentes</h3>
       
-      <div class="space-y-4">
-        <details class="group bg-white/5 rounded-2xl p-4 border border-white/5">
+      <div class="space-y-3">
+        <details class="group bg-white/5 rounded-xl p-3 border border-white/5">
           <summary class="list-none flex justify-between items-center cursor-pointer font-bold text-xs uppercase tracking-wider">
             ¿Cómo añado un nuevo botón?
             <span class="text-volti-accent transition-transform group-open:rotate-45">+</span>
@@ -78,7 +78,7 @@
           <p class="mt-4 text-slate-400 text-xs">Ve a la sección "Pines", rellena el nombre, el pin GPIO que vas a usar y el tipo de señal (Switch, Slider, etc.).</p>
         </details>
 
-        <details class="group bg-white/5 rounded-2xl p-4 border border-white/5">
+        <details class="group bg-white/5 rounded-xl p-3 border border-white/5">
           <summary class="list-none flex justify-between items-center cursor-pointer font-bold text-xs uppercase tracking-wider">
             ¿Por qué dice "ESP32 Offline"?
             <span class="text-volti-accent transition-transform group-open:rotate-45">+</span>

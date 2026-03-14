@@ -29,7 +29,7 @@ body {
   backdrop-filter: blur(12px);           /* Desenfoque de lo que hay detrás */
   -webkit-backdrop-filter: blur(12px);   /* Desenfoque para Safari */
   border: 1px solid rgba(255, 255, 255, 0.1); /* Borde muy fino y brillante */
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8); /* Sombra para dar profundidad */
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.8); /* Sombra reducida */
 }
 
 /* Efecto de resplandor Neón para botones importantes */
@@ -86,9 +86,9 @@ input[type='range']::-webkit-slider-thumb {
 /* ======= NAVEGACIÓN PREMIUM ======= */
 .main-nav {
   position: sticky;
-  top: 1rem;
+  top: 0.5rem;
   z-index: 50;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .nav-link {

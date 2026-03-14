@@ -100,7 +100,7 @@
     .data-table tbody tr { animation: fadeInRow .15s ease both; }
   </style>
 </head>
-<body class="p-3 md:p-6 text-sm min-h-screen">
+<body class="p-2 md:p-3 text-xs min-h-screen">
 
   <!-- FONDO ANIMADO -->
   <div class="bg-animation">
@@ -110,7 +110,7 @@
 
   <!-- NAVEGACIÓN PRINCIPAL -->
   <nav class="main-nav max-w-7xl mx-auto px-4 md:px-0">
-    <div class="glass-panel rounded-2xl p-3 md:p-4 flex items-center justify-between border-volti-accent/20">
+    <div class="glass-panel rounded-xl p-2 md:p-4 flex items-center justify-between border-volti-accent/20">
 
       <!-- LOGO -->
       <div class="flex items-center space-x-3">
@@ -177,7 +177,7 @@
     <!-- RESUMEN DE TABLAS (cards superiores) -->
     <div id="table-cards" class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <!-- Se generan dinámicamente -->
-      <div class="glass-panel rounded-2xl p-4 animate-pulse">
+      <div class="glass-panel rounded-xl p-3 animate-pulse">
         <div class="h-3 bg-white/10 rounded w-1/2 mb-2"></div>
         <div class="h-6 bg-white/10 rounded w-1/3"></div>
       </div>
@@ -231,10 +231,10 @@
           <!-- Campos se generan dinámicamente -->
         </div>
         <div class="flex gap-2 pt-2">
-          <button type="submit" class="flex-1 bg-volti-accent hover:bg-volti-accent/80 text-white font-bold py-2.5 rounded-xl text-sm transition neon-glow">
+          <button type="submit" class="flex-1 bg-volti-accent hover:bg-volti-accent/80 text-white font-bold py-2.5 rounded-xl text-xs transition neon-glow">
             Guardar
           </button>
-          <button type="button" id="modal-cancel" class="px-4 py-2.5 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-sm hover:bg-white/10 transition">
+          <button type="button" id="modal-cancel" class="px-4 py-2.5 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs hover:bg-white/10 transition">
             Cancelar
           </button>
         </div>
@@ -243,7 +243,7 @@
   </div>
 
   <!-- TOAST DE NOTIFICACIONES -->
-  <div id="toast" class="hide fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl flex items-center gap-3">
+  <div id="toast" class="hide fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-3">
     <span id="toast-icon">✓</span>
     <span id="toast-msg"></span>
   </div>
@@ -269,7 +269,7 @@
     const txt  = document.getElementById('toast-msg');
     icon.textContent = type === 'ok' ? '✓' : '✕';
     txt.textContent  = msg;
-    el.className = `show fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl flex items-center gap-3 ${type === 'ok' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'}`;
+    el.className = `show fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-3 ${type === 'ok' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'}`;
     setTimeout(() => { el.classList.remove('show'); el.classList.add('hide'); }, 3500);
   }
 
@@ -295,7 +295,7 @@
     const container = document.getElementById('table-cards');
     container.innerHTML = allTables.map(t => `
       <div onclick="selectTable(${JSON.stringify(t).replace(/"/g, '&quot;')})"
-           class="glass-panel rounded-2xl p-4 cursor-pointer hover:border-volti-accent/40 border border-transparent transition group"
+           class="glass-panel rounded-xl p-3 cursor-pointer hover:border-volti-accent/40 border border-transparent transition group"
            title="Ver tabla ${t.name}">
         <div class="flex items-center gap-2 mb-2">
           <svg class="w-4 h-4 text-volti-accent opacity-60 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">

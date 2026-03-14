@@ -32,7 +32,7 @@
   <!-- Estilos globales que hemos centralizado -->
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="p-3 md:p-6 text-sm">
+<body class="p-2 md:p-3 text-xs">
 
   <!-- Animación Futurista de Fondo -->
   <div class="bg-animation">
@@ -42,7 +42,7 @@
 
   <!-- NAVEGACIÓN PRINCIPAL -->
   <nav class="main-nav max-w-7xl mx-auto px-4 md:px-0">
-    <div class="glass-panel rounded-2xl p-3 md:p-4 flex items-center justify-between border-volti-accent/20">
+    <div class="glass-panel rounded-xl p-2 md:p-3 flex items-center justify-between border-volti-accent/20">
       
       <!-- LOGO Y TÍTULO -->
       <div class="flex items-center space-x-3">
@@ -86,21 +86,16 @@
         <button id="btn-logout" class="group flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 px-3 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95">
           <span class="hidden md:inline">SALIR</span>
           <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        </button>
-      </div>
-
-    </div>
   </nav>
 
-
   <!-- CONTENIDO PRINCIPAL (Dashboard) -->
-  <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 text-white">
+  <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-3 text-white">
     
     <!-- COLUMNA IZQUIERDA: Tarjetas de control y switches IoT -->
-    <section class="lg:col-span-5 space-y-4">
+    <section class="lg:col-span-5 space-y-3">
       
       <!-- Panel de Controles -->
-      <div class="glass-panel rounded-2xl p-4 lg:p-5">
+      <div class="glass-panel rounded-xl p-3 lg:p-4">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold flex items-center gap-2">
             <!-- Ícono de Hardware - SVG -->
@@ -126,41 +121,41 @@
 
 
       <!-- Tarjeta de Diagnóstico (Estado de los Pines Creada Puramente en CSS) -->
-      <div class="glass-panel rounded-2xl p-4">
-        <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">Estado Diagnóstico Pines del Sistema</h3>
-        <div class="grid grid-cols-2 gap-3" id="pin-status-container">
+      <div class="glass-panel rounded-xl p-3">
+        <h3 class="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-2">Estado Diagnóstico Pines del Sistema</h3>
+        <div class="grid grid-cols-2 gap-2" id="pin-status-container">
            <!-- Los indicadores de pines se insertan por app.js dinámicamente -->
-           <p class="text-xs text-slate-400 italic col-span-2">Cargando estado en vivo...</p>
+           <p class="text-[10px] text-slate-400 italic col-span-2">Cargando estado en vivo...</p>
         </div>
       </div>
     </section>
 
     <!-- COLUMNA DERECHA: Gráficas visuales para los sensores -->
-    <section class="lg:col-span-7 space-y-4">
+    <section class="lg:col-span-7 space-y-3">
       
       <!-- Gráfico 1: Consumo Actual - Chart.js -->
-      <div class="glass-panel rounded-2xl p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold">Consumo Real e Interferencia</h2>
-          <span class="px-2 py-0.5 bg-volti-accent/10 text-volti-accent text-[10px] font-bold rounded-full border border-volti-accent/20 uppercase">
+      <div class="glass-panel rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-base font-semibold">Consumo Real e Interferencia</h2>
+          <span class="px-2 py-0.5 bg-volti-accent/10 text-volti-accent text-[9px] font-bold rounded-full border border-volti-accent/20 uppercase">
             En Vivo DB
           </span>
         </div>
         <!-- Contenedor del canvas es importante para que el grafico se adapte -->
-        <div class="h-44">
+        <div class="h-36">
           <canvas id="loadChart"></canvas>
         </div>
       </div>
 
       <!-- Gráfico 2: Temperatura del NodeMCU o ambiente -->
-      <div class="glass-panel rounded-2xl p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold">Distribución Térmica Ambiente</h2>
-          <span id="sync-status" class="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-full border border-orange-500/20 uppercase">
+      <div class="glass-panel rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-base font-semibold">Distribución Térmica Ambiente</h2>
+          <span id="sync-status" class="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[9px] font-bold rounded-full border border-orange-500/20 uppercase">
             Sincronizando...
           </span>
         </div>
-        <div class="h-44">
+        <div class="h-36">
           <canvas id="thermalChart"></canvas>
         </div>
       </div>
