@@ -227,21 +227,38 @@ body.light-mode .glass-panel {
 }
 
 body.light-mode .nav-link {
-  color: #64748b;
+  color: #0db9f2;
 }
 
-body.light-mode .text-slate-400, body.light-mode .text-slate-500 {
-  color: #475569;
+body.light-mode .text-slate-400, 
+body.light-mode .text-slate-500,
+body.light-mode .text-gray-400,
+body.light-mode .text-gray-500,
+body.light-mode .text-white\/50,
+body.light-mode .text-white\/20,
+body.light-mode .text-slate-600 {
+  color: #0789b5 !important; /* Un azul un poco más oscuro para mejor contraste en fondo claro */
+}
+
+body.light-mode .opacity-70, 
+body.light-mode .opacity-50,
+body.light-mode .opacity-20 {
+  opacity: 1 !important;
 }
 
 body.light-mode .bg-white\/5 {
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(13, 185, 242, 0.05); /* Sutil tinte azulado en lugar de gris */
 }
 
-body.light-mode .border-white\/5 {
-  border-color: rgba(0, 0, 0, 0.05);
+body.light-mode .border-white\/5,
+body.light-mode .border-white\/10 {
+  border-color: rgba(13, 185, 242, 0.2);
 }
 
 body.light-mode h1, body.light-mode h2, body.light-mode h3 {
   color: #0f172a;
+}
+
+body.light-mode label {
+  color: #0789b5;
 }
