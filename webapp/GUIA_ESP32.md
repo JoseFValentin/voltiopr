@@ -31,7 +31,7 @@ En este ejemplo, configuraremos un LED para variar su brillo desde la web de Vol
 
 ### Configuración en la Web:
 1.  **Nombre:** `Luz Regulable`
-2.  **ID:** `esp32_dimmer_01`
+2.  **ID:** `esp32_central_01`
 3.  **Pin:** `4`
 4.  **Tipo:** `PWM` (Esto habilitará un control deslizante/slider en el Dashboard).
 
@@ -44,7 +44,7 @@ En este ejemplo, configuraremos un LED para variar su brillo desde la web de Vol
 
 const char* ssid = "TU_WIFI";
 const char* password = "TU_PASSWORD";
-const char* host = "https://tu-app.voltiopr.pages.dev/api/hardware?id=esp32_dimmer_01";
+const char* host = "https://tu-app.voltiopr.pages.dev/api/hardware?id=esp32_central_01";
 
 // Configuración PWM ESP32
 const int ledPin = 4; // GPIO 4 (Vínculo con la Web)
