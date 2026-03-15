@@ -1,11 +1,13 @@
 -- ==============================================================
--- VOLTIOPR - ESQUEMA MAESTRO DE BASE DE DATOS (V2.1)
+-- VOLTIOPR - ESQUEMA MAESTRO DE BASE DE DATOS (V2.1+)
 -- ==============================================================
--- Este archivo define la estructura completa y profesional 
--- para soportar Login, Seguridad y Multicliente en VoltioPR.
 
--- 1. TABLA DE USUARIOS (El corazón de la seguridad)
+-- 1. LIMPIEZA INICIAL (PARA EVITAR PROBLEMAS DE FOREIGN KEYS)
+DROP TABLE IF EXISTS user_metadata;
+DROP TABLE IF EXISTS iot_config;
 DROP TABLE IF EXISTS usuarios;
+
+-- 2. TABLA DE USUARIOS
 CREATE TABLE usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL,
@@ -17,22 +19,19 @@ CREATE TABLE usuarios (
     fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. TABLA DE CONFIGURACIÓN IOT (Pines y Protocolos)
--- Aquí es donde se guardan los I2C, SPI, PWM, etc.
-DROP TABLE IF EXISTS iot_config;
+-- 3. TABLA DE CONFIGURACIÓN IOT (Pines y Protocolos)
 CREATE TABLE iot_config (
     id TEXT PRIMARY KEY,           -- ID único (slug)
     usuario_id INTEGER,            -- Dueño del componente
     nombre TEXT NOT NULL,          -- Nombre amigable
     tipo TEXT NOT NULL,            -- DIGITAL_OUT, PWM, I2C, SPI, WIFI, etc.
     pin TEXT NOT NULL,             -- GPIO físico
-    valor_actual TEXT DEFAULT '0', -- Estado en vivo (0, 1, 255, -60dBm, etc.)
+    valor_actual TEXT DEFAULT '0', -- Estado en vivo
     descripcion TEXT,              -- Notas adicionales
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
--- 3. TABLA DE METADATA (Seguridad y Auditoría)
-DROP TABLE IF EXISTS user_metadata;
+-- 4. TABLA DE METADATA
 CREATE TABLE user_metadata (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
