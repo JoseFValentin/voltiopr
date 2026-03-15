@@ -1,41 +1,95 @@
 -- ==============================================================
--- ESTRUCTURA DE LA BASE DE DATOS D1 (TABLAS Y COLUMNAS)
+-- VOLTIOPR - ESQUEMA MAESTRO DE BASE DE DATOS (V2.1)
 -- ==============================================================
--- Nota para no programadores:
--- Este archivo es como el diseño de las hojas de Excel donde
--- guardaremos la información de VoltioPR de forma organizada.
--- No guarda los datos en sí, solo define cómo se deben guardar.
+-- Este archivo define la estructura completa y profesional 
+-- para soportar Login, Seguridad y Multicliente en VoltioPR.
 
--- 1. Si ya existe la hoja 'usuarios', la borramos para empezar limpio (solo para desarrollo inicial)
+-- 1. TABLA DE USUARIOS (El corazón de la seguridad)
 DROP TABLE IF EXISTS usuarios;
-
--- 2. Creamos la hoja (tabla) para los Usuarios
 CREATE TABLE usuarios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,   -- Un número único e irrepetible para cada usuario (1, 2, 3...)
-    username TEXT NOT NULL,                 -- El nombre del usuario 
-    email TEXT UNIQUE NOT NULL,             -- El correo de la persona (UNIQUE: No puede haber dos iguales)
-    password_hash TEXT NOT NULL,            -- La contraseña oculta/encriptada (¡Nunca se guarda en texto normal por seguridad!)
-    es_admin BOOLEAN DEFAULT FALSE,         -- ¿Es administrador avanzado? (Verdadero o Falso)
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP -- Cuándo se creó la cuenta
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    es_admin BOOLEAN DEFAULT FALSE,
+    reset_token TEXT,             -- Para recuperación de contraseña
+    reset_token_expiry TEXT,      -- Cuándo expira el token
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Si ya existe la hoja 'dispositivos', la borramos para empezar limpio
-DROP TABLE IF EXISTS dispositivos;
+-- 2. TABLA DE CONFIGURACIÓN IOT (Pines y Protocolos)
+-- Aquí es donde se guardan los I2C, SPI, PWM, etc.
+DROP TABLE IF EXISTS iot_config;
+CREATE TABLE iot_config (
+    id TEXT PRIMARY KEY,           -- ID único (slug)
+    usuario_id INTEGER,            -- Dueño del componente
+    nombre TEXT NOT NULL,          -- Nombre amigable
+    tipo TEXT NOT NULL,            -- DIGITAL_OUT, PWM, I2C, SPI, WIFI, etc.
+    pin TEXT NOT NULL,             -- GPIO físico
+    valor_actual TEXT DEFAULT '0', -- Estado en vivo (0, 1, 255, -60dBm, etc.)
+    descripcion TEXT,              -- Notas adicionales
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
 
--- 4. Creamos la hoja (tabla) para los Interruptores Físicos (IoT/NodeMCU)
-CREATE TABLE dispositivos (
-    id TEXT PRIMARY KEY,                    -- Nombre único (ej. 'reactor-toggle' o 'cooling-toggle')
-    estado_encendido BOOLEAN DEFAULT FALSE, -- ¿Está prendido? Verdadero(On) o Falso(Off)
-    poder_porcentaje INTEGER DEFAULT 0,     -- Qué tanta potencia (0% a 100%)
-    ultima_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP
+-- 3. TABLA DE METADATA (Seguridad y Auditoría)
+DROP TABLE IF EXISTS user_metadata;
+CREATE TABLE user_metadata (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    user_agent TEXT,
+    ip_address TEXT,
+    consent_cookies INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES usuarios(id)
 );
 
 -- ==============================================================
--- DATOS DE PRUEBA (Para cuando arranque el sistema la primera vez)
+-- SEMILLAS (DATOS INICIALES PARA EL USUARIO ADMIN)
 -- ==============================================================
--- Insertamos los dos interruptores que tienes en tu diseño HTML para que existan
-INSERT INTO dispositivos (id, estado_encendido, poder_porcentaje) VALUES ('reactor-toggle', false, 45);
-INSERT INTO dispositivos (id, estado_encendido, poder_porcentaje) VALUES ('cooling-toggle', false, 82);
--- Insertar un usuario de prueba (contraseña sin encriptar solo como demostración básica por ahora)
--- NOTA REAL: El backend encriptará las futuras contraseñas.
-INSERT INTO usuarios (username, email, password_hash) VALUES ('Admin', 'admin@voltiopr.com', '123456');
+
+-- Usuario Admin por defecto
+INSERT INTO usuarios (id, username, email, password_hash, es_admin) 
+VALUES (1, 'Admin', 'admin@voltiopr.com', '123456', 1);
+
+-- Ejemplos de Protocolos Avanzados (Coherentes con Dashboard V2)
+-- Básico
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('foco-sala', 1, 'Iluminación Sala', 'DIGITAL_OUT', 'D1', '0', 'Interruptor principal de luz');
+
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('dimmer-cocina', 1, 'Intensidad Cocina', 'PWM', 'D2', '75', 'Control de brillo 0-100%');
+
+-- Buses
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('sensor-aire', 1, 'BME280 Ambiente', 'I2C', 'GPIO 21/22', 'Sincronizado', 'Bus de temperatura y humedad');
+
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('pantalla-tft', 1, 'Display Status', 'SPI', 'GPIO 13/14', 'Activo', 'Pantalla principal de información');
+
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('can-bus-auto', 1, 'OBDII Telemetry', 'CAN', 'GPIO 4/5', '100 kbps', 'Datos del bus de motor');
+
+-- Audio y Comunicaciones
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('speaker-out', 1, 'Salida Audio', 'I2S', 'GPIO 25/26', 'Buffer OK', 'Audio digital I2S');
+
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('consola-debug', 1, 'Serial Monitor', 'SERIAL', 'TX/RX', 'Waiting...', 'Consola de depuración UART');
+
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('sonda-termica', 1, 'Tanque Agua', 'ONEWIRE', 'GPIO 15', '45.6°C', 'Sensores de temperatura DS18B20');
+
+-- Sensores Internos ESP32
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('boton-tactil', 1, 'Touch Panel', 'TOUCH', 'T0', '20', 'Sensor capacitivo de toque');
+
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('iman-seguridad', 1, 'Sensor Puerta', 'HALL', 'Internal', '62', 'Detector de campo magnético');
+
+-- Inalámbrico
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('wifi-signal', 1, 'Red VoltioPR', 'WIFI', 'Internal', '-55', 'Potencia de señal WiFi (RSSI)');
+
+-- Precisión
+INSERT INTO iot_config (id, usuario_id, nombre, tipo, pin, valor_actual, descripcion) 
+VALUES ('voltaje-vca', 1, 'Control DAC', 'DAC', 'GPIO 25', '128', 'Salida analógica real 0-255');

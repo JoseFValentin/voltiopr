@@ -107,14 +107,53 @@
 
           <div>
             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Tipo de Interfaz</label>
-            <select id="conf-tipo" class="w-full bg-slate-900 border-white/10 rounded-xl text-white focus:border-volti-accent">
-              <option value="DIGITAL_OUT">Salida Digital (Switch ON/OFF)</option>
-              <option value="DIGITAL_IN">Entrada Digital (Sensor Presencia)</option>
-              <option value="PWM">Salida PWM (Potencia/Dimer)</option>
-              <option value="ANALOG_IN">Entrada Analógica (Sensor Voltaje)</option>
-              <option value="SERIAL">Comunicación UART/Serial</option>
-              <option value="I2S">Audio / I2S Bus</option>
+            <select id="conf-tipo" class="w-full bg-slate-900 border-white/10 rounded-xl text-white focus:border-volti-accent appearance-none cursor-pointer">
+              <optgroup label="⚙️ Básico (Control Directo)">
+                <option value="DIGITAL_OUT">🔌 Salida Digital (Relés/LEDs)</option>
+                <option value="DIGITAL_IN">🔘 Entrada Digital (Botones/PIR)</option>
+                <option value="PWM">🔆 Salida PWM (Potencia/Dimer)</option>
+                <option value="ANALOG_IN">📉 Entrada Analógica (ADC 0-3.3V)</option>
+                <option value="DAC">🔊 Salida Analógica Real (DAC - ESP32)</option>
+              </optgroup>
+              <optgroup label="🔗 Buses de Datos (I2C/SPI/CAN)">
+                <option value="I2C">🔗 I2C (Sensores y Pantallas OLED)</option>
+                <option value="SPI">🚀 SPI (Tarjetas SD y Pantallas TFT)</option>
+                <option value="CAN">🏎️ CAN Bus / TWAI (Comunicación Industrial)</option>
+              </optgroup>
+              <optgroup label="🎵 Audio (I2S)">
+                <option value="I2S">🎵 Stream de Audio Digital / I2S</option>
+              </optgroup>
+              <optgroup label="📟 Serial y OneWire">
+                <option value="SERIAL">📟 UART / Serial (GPS/Modems)</option>
+                <option value="ONEWIRE">🌡️ OneWire (Sensores DS18B20)</option>
+              </optgroup>
+              <optgroup label="📶 Inalámbrico (WiFi)">
+                <option value="WIFI">📶 Estado WiFi (Calidad de Señal RSSI)</option>
+              </optgroup>
+              <optgroup label="👆 Sensores ESP (Touch/Hall)">
+                <option value="TOUCH">👆 Sensor Táctil (GPIO Capacitivos)</option>
+                <option value="HALL">🧲 Sensor de Efecto Hall (Magnético)</option>
+              </optgroup>
+              <optgroup label="📡 Infrarrojo (IR)">
+                <option value="IR">📡 Receptor/Emisor Infrarrojo</option>
+              </optgroup>
+              <optgroup label="⏲️ Contador (PCNT)">
+                <option value="PCNT">⏲️ Pulse Counter (Frecuencímetro)</option>
+              </optgroup>
             </select>
+          </div>
+
+          <!-- Cuadro de Información de Seguridad -->
+          <div class="p-4 bg-volti-accent/5 border border-volti-accent/20 rounded-xl">
+             <div class="flex items-center gap-2 mb-2 text-volti-accent">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-3V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-3zM12 9a3 3 0 100-6 3 3 0 000 6z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                <h4 class="text-[10px] font-bold uppercase tracking-widest">Seguridad y Configuración</h4>
+             </div>
+             <ul class="text-[10px] text-slate-400 space-y-2 leading-relaxed">
+                <li>• <strong class="text-slate-300">Privacidad:</strong> Solo tú puedes ver y controlar estos pines desde tu cuenta.</li>
+                <li>• <strong class="text-slate-300">X-API-KEY:</strong> Asegúrate de usar tu llave de seguridad en el código de tu ESP.</li>
+                <li>• <strong class="text-white">ID (Slug):</strong> Debe ser único para cada dispositivo (ej: <code class="bg-black/30 px-1 rounded">foco-sala-1</code>).</li>
+             </ul>
           </div>
 
           <div>

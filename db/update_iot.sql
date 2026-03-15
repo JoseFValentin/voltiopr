@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS iot_config (
     id TEXT PRIMARY KEY,           -- Identificador único (ej: 'bomba-agua')
     usuario_id INTEGER,            -- Dueño de la configuración
     nombre TEXT NOT NULL,          -- Nombre amigable (ej: 'Motor de Enfriamiento')
-    tipo TEXT NOT NULL,            -- 'PWM', 'I2S', 'SERIAL', 'ANALOG_IN', 'ANALOG_OUT', 'DIGITAL_IN', 'DIGITAL_OUT'
+    tipo TEXT NOT NULL,            -- 'PWM', 'I2S', 'SERIAL', 'ANALOG_IN', 'DAC', 'I2C', 'SPI', 'CAN', 'ONEWIRE', 'IR', 'TOUCH', 'HALL', 'PCNT', 'WIFI', 'BLE'
     pin TEXT NOT NULL,             -- Pin físico del ESP (ej: 'GPIO2', 'A0', 'D1')
     valor_actual TEXT DEFAULT '0', -- El estado o valor actual del pin
     descripcion TEXT,              -- Para qué sirve este pin

@@ -1,80 +1,98 @@
-# 📟 Guía de Configuración: ESP8266 + VoltioPR
+# 📟 Guía Extendida: ESP8266 + VoltioPR
 
-Esta guía detalla cómo vincular tu hardware **ESP8266 (NodeMCU/Wemos D1)** con la plataforma VoltioPR.
+El **ESP8266 (NodeMCU/Wemos D1)** es ideal para proyectos económicos de automatización. Aquí tienes cómo conectarlo de forma segura con los nuevos protocolos.
 
-## 1. Entendiendo los Campos de la Pantalla de Pines
+## 1. Protocolos Soportados en ESP8266
 
-Cuando entras a la sección de **Configuración de Pines** en VoltioPR, verás un formulario. Aquí te explicamos cómo llenarlo correctamente para un ESP8266:
-
-### A. Nombre del Dispositivo
-*   **Qué poner:** Un nombre descriptivo para identificarlo en el Dashboard.
-*   **Ejemplo:** `Luz Terraza`, `Ventilador Oficina`, `Sensor Humedad`.
-
-### B. ID del Dispositivo (Hardware ID)
-*   **Qué poner:** Una clave única alfanumérica (sin espacios) que será la que uses en el código de Arduino para que la web reconozca el hardware.
-*   **Ejemplo:** `esp8266_relay_01` o `nodo_principal`.
-
-### C. Pin de Hardware (GPIO)
-*   **¡IMPORTANTE!** En ESP8266, la serigrafía de la placa (D1, D2, D8) **NO** coincide con el número de GPIO que entiende el software. Debes poner el número de **GPIO**.
-*   **Tabla de Referencia ESP8266:**
-    *   `D1` = **5**
-    *   `D2` = **4**
-    *   `D5` = **14**
-    *   `D8` = **15**
-*   **Ejemplo:** Si conectas un relé al pin físico **D1**, en la web debes escribir **5**.
-
-### D. Tipo de Señal
-*   **DIGITAL_OUT:** Para prender/apagar algo (Relés, LEDs).
-*   **PWM:** Para regular intensidad (Dimmer de luces, velocidad de motor).
-*   **ANALOG_IN:** Para leer sensores (Solo pin A0 en ESP8266).
+Aunque es menos potente que el ESP32, puede manejar:
+*   **DIGITAL_OUT**: Relés y luces.
+*   **PWM**: Dimmers de intensidad (Software PWM, 0 a 1023).
+*   **ANALOG_IN**: Solo tiene **1 pin (A0)**. Ideal para un sensor de luz o batería.
+*   **I2C**: Usando los pines D1 (SCL) y D2 (SDA).
+*   **WIFI / RSSI**: Monitoreo de señal inalámbrica.
 
 ---
 
-## 2. Ejemplo Práctico: Control de un Relé (D1)
+## 2. Código Arduino Optimizado (Simple y Seguro)
 
-### Configuración en la Web:
-1.  **Nombre:** `Bombilla Taller`
-2.  **ID:** `esp8266_luz_1`
-3.  **Pin:** `5` (porque usaremos D1)
-4.  **Tipo:** `DIGITAL_OUT`
-
-### Código Arduino para ESP8266:
-Asegúrate de tener instalada la librería `ArduinoJson` y configurar tu WiFi.
+Este código incluye la nueva **X-API-KEY** de seguridad y soporte para múltiples pines.
 
 ```cpp
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
 
+// --- DATOS WIFI ---
 const char* ssid = "TU_WIFI";
 const char* password = "TU_PASSWORD";
-const char* api_url = "/api/hardware?id=esp8266_luz_1";
-const char* apiKey = "v0ltio_Acc3ss_2026_Secur3";
+const char* host = "http://tu-app.voltiopr.pages.dev/api/hardware";
+const char* apiKey = "v0ltio_Acc3ss_2026_Secur3"; // Llave configurada en el servidor
 
 void setup() {
   Serial.begin(115200);
-  pinMode(5, OUTPUT); // Corresponde al Pin 5 de la web
+  pinMode(D1, OUTPUT); // Pin para Relé/LED
+  
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  Serial.println("\n¡Conectado!");
 }
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
-    WiFiClientSecure client;
-    client.setInsecure(); // Simplificado para este ejemplo
+    WiFiClient client; // Usamos http para ESP8266 por simplicidad de memoria
+    HTTPClient http;
+
+    // 1. ENVIAR SEÑAL WIFI (Telemetría)
+    http.begin(client, host);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-API-KEY", apiKey);
+
+    StaticJsonDocument<200> postDoc;
+    postDoc["id_dispositivo"] = "esp8266-wifi";
+    postDoc["valor"] = String(WiFi.RSSI()); // Envía potencia de señal
+
+    String jsonStr;
+    serializeJson(postDoc, jsonStr);
+    http.POST(jsonStr);
+    http.end();
+
+    // 2. RECIBIR ÓRDENES (Control)
+    http.begin(client, host);
+    http.addHeader("X-API-KEY", apiKey);
     
-    // Obtener estado desde VoltioPR
-    if (client.connect("tu-app.voltiopr.pages.dev", 443)) {
-      client.print(String("GET ") + api_url + " HTTP/1.1\r\n" +
-                   "Host: tu-app.voltiopr.pages.dev\r\n" +
-                   "X-API-KEY: " + apiKey + "\r\n" + 
-                   "Connection: close\r\n\r\n");
-                   
-      // Leer respuesta y aplicar al pin
-      // (Lógica simplificada para detectar si es '1' o '0')
-      // digitalWrite(5, estado_detectado);
+    int httpCode = http.GET();
+    if (httpCode == 200) {
+      String payload = http.getString();
+      DynamicJsonDocument doc(2048);
+      deserializeJson(doc, payload);
+
+      JsonArray items = doc["datos_iot"];
+      for (JsonObject item : items) {
+        String id = item["id"];
+        String val = item["valor_actual"];
+
+        if (id == "rele-terraza") {
+          digitalWrite(D1, (val == "1") ? HIGH : LOW);
+        }
+      }
     }
+    http.end();
   }
-  delay(5000); // Revisar cada 5 segundos
+  delay(3000); // Sincroniza cada 3 segundos
 }
 ```
 
-> [!TIP]
-> Recuerda que el ESP8266 tiene poca potencia comparado con el ESP32. Úsalo principalmente para tareas sencillas de encendido/apagado.
+---
+
+## 3. Tabla de Referencia de Pines (GPIO)
+
+| Serigrafía | GPIO (Número en Web) | Función Recomendada |
+| :--- | :--- | :--- |
+| **D1** | **5** | I2C (SCL) o Salida Digital |
+| **D2** | **4** | I2C (SDA) o Salida Digital |
+| **D5** | **14** | SPI (CLK) o PWM |
+| **D6** | **12** | SPI (MISO) o PWM |
+| **A0** | **0 (Analógico)** | Lectura de Sensores (0 a 3.3V) |
+
+> [!CAUTION]
+> No uses el pin **D3 (GPIO 0)** o **D4 (GPIO 2)** como entradas que puedan estar activas al encender, ya que el ESP8266 no arrancará correctamente.

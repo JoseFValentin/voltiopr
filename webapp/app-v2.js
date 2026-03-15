@@ -372,9 +372,39 @@ async function setupConfig() {
   const form = document.getElementById('config-form');
   const listContainer = document.getElementById('pines-list');
 
-  // Cargar lista inicial
-  const loadPines = async () => {
-    const res = await fetch('/api/config');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      nombre: document.getElementById('conf-nombre').value,
+      id: document.getElementById('conf-id').value,
+      pin: document.getElementById('conf-pin').value,
+      tipo: document.getElementById('conf-tipo').value,
+      descripcion: document.getElementById('conf-desc').value
+    };
+
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (res.ok) {
+        showToast('Dispositivo configurado con éxito', 'success');
+        form.reset();
+        loadPines();
+    } else {
+        showToast('Error al guardar configuración', 'error');
+    }
+  });
+
+  // Helper for loading pines with auth
+  async function loadPines() {
+    const res = await fetch('/api/config', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
+    });
     const pines = await res.json();
     listContainer.innerHTML = pines.map(p => `
       <div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition">
@@ -392,11 +422,14 @@ async function setupConfig() {
         </button>
       </div>
     `).join('');
-  };
+  }
 
   window.deletePin = async (id) => {
     if (confirm('¿Eliminar esta configuración?')) {
-        const res = await fetch(`/api/config?id=${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/config?id=${id}`, { 
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
+        });
         if(res.ok) {
           showToast('Configuración eliminada', 'info');
           loadPines();
@@ -405,31 +438,6 @@ async function setupConfig() {
         }
     }
   };
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const data = {
-      nombre: document.getElementById('conf-nombre').value,
-      id: document.getElementById('conf-id').value,
-      pin: document.getElementById('conf-pin').value,
-      tipo: document.getElementById('conf-tipo').value,
-      descripcion: document.getElementById('conf-desc').value
-    };
-
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    if (res.ok) {
-        showToast('Dispositivo configurado con éxito', 'success');
-        form.reset();
-        loadPines();
-    } else {
-        showToast('Error al guardar configuración', 'error');
-    }
-  });
 
   loadPines();
 }
@@ -441,33 +449,19 @@ async function setupHardwareControls() {
   const container = document.getElementById('iot-controls-container');
   const statusCont = document.getElementById('device-status-container');
   
-  // Mostrar Skeletons mientras carga
-  container.innerHTML = Array(3).fill(0).map(() => `
-    <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-3">
-        <div class="flex justify-between items-center">
-            <div class="h-4 w-24 skeleton"></div>
-            <div class="h-5 w-10 rounded-full skeleton"></div>
-        </div>
-        <div class="h-2 w-full skeleton opacity-50"></div>
-    </div>
-  `).join('');
-
   try {
-    // 1. Obtener la configuración
-    const configRes = await fetch('/api/config');
+    const configRes = await fetch('/api/config', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
+    });
     const config = await configRes.json();
     
-    // Simular un pequeño delay para que el usuario vea que la app es reactiva (opcional pro-feel)
-    // await new Promise(r => setTimeout(r, 800));
-
     if (config.length === 0) {
         container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs italic">No hay dispositivos configurados. Ve a "Configurar ESP" para añadir uno.</div>`;
         return;
     }
 
-    container.innerHTML = ''; // Limpiar skeletons
+    container.innerHTML = ''; 
 
-    // Actualizar indicador de conectividad (Simulado por ahora para diseño)
     if (statusCont) {
       statusCont.innerHTML = `
         <div class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
@@ -477,7 +471,6 @@ async function setupHardwareControls() {
       `;
     }
 
-    // 2. Renderizar cada dispositivo según su tipo
     config.forEach(dev => {
       const card = document.createElement('div');
       card.className = "p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2 hover:border-voltio/30 transition-all duration-300 group";
@@ -497,11 +490,18 @@ async function setupHardwareControls() {
           `;
           break;
         case 'PWM':
+          // PWM ahora tiene Slider + Toggle para habilitar/deshabilitar
           controlHtml = `
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
                  <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
-                 <span class="text-[10px] text-volti-accent px-1.5 py-0.5 bg-volti-accent/10 rounded border border-volti-accent/20">${dev.pin}</span>
+                 <div class="flex items-center gap-2">
+                   <span class="text-[10px] text-volti-accent px-1.5 py-0.5 bg-volti-accent/10 rounded border border-volti-accent/20">${dev.pin}</span>
+                   <div class="relative inline-block w-8 align-middle select-none">
+                     <input type="checkbox" id="${dev.id}-toggle-pwm" ${parseInt(dev.valor_actual) > 0 ? 'checked' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-4 h-4 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
+                     <label for="${dev.id}-toggle-pwm" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-800 cursor-pointer"></label>
+                   </div>
+                 </div>
               </div>
               <div class="flex items-center gap-4">
                 <input type="range" class="iot-dynamic-slider flex-grow accent-volti-accent" min="0" max="100" value="${dev.valor_actual}" data-id="${dev.id}" />
@@ -512,26 +512,91 @@ async function setupHardwareControls() {
           break;
         case 'ANALOG_IN':
           controlHtml = `
-            <div class="flex items-center justify-between">
-              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-volti-accent">${dev.valor_actual} units</span>
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
                 <span class="text-[9px] text-slate-500 bg-white/5 px-2 py-1 rounded">${dev.pin}</span>
+              </div>
+              <div class="h-24 w-full">
+                <canvas id="chart-${dev.id}"></canvas>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-bold text-volti-accent" id="val-${dev.id}">${dev.valor_actual} units</span>
               </div>
             </div>
           `;
           break;
-        case 'SERIAL':
+        case 'DIGITAL_IN':
+          controlHtml = `
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre} (${dev.pin})</span>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${dev.valor_actual == '1' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}">
+                  ${dev.valor_actual == '1' ? 'ACTIVO' : 'INACTIVO'}
+                </span>
+              </div>
+            </div>
+          `;
+          break;
+        case 'I2C':
+        case 'SPI':
+        case 'CAN':
+          controlHtml = `
+            <div class="flex items-center justify-between">
+              <div class="flex flex-col">
+                <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                <span class="text-[9px] text-slate-500">Bus ${dev.tipo} • Sincronizado</span>
+              </div>
+              <div class="flex gap-1 h-4 items-end border-l border-white/10 pl-3">
+                 <div class="w-1 bg-volti-accent/30 h-2 animate-bounce" style="animation-duration: 0.5s"></div>
+                 <div class="w-1 bg-volti-accent/60 h-4 animate-bounce" style="animation-duration: 0.7s"></div>
+                 <div class="w-1 bg-volti-accent h-3 animate-bounce" style="animation-duration: 0.4s"></div>
+              </div>
+            </div>
+          `;
+          break;
+        case 'TOUCH':
+        case 'HALL':
           controlHtml = `
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
                 <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
-                <span class="text-[9px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 font-bold">SERIAL</span>
+                <span class="text-[9px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20">${dev.pin}</span>
               </div>
-              <div class="bg-black/40 p-2 rounded-lg border border-white/5 font-mono text-[10px] text-green-400 overflow-hidden h-12 flex flex-col-reverse">
-                <div>> Esperando datos...</div>
-                <div class="opacity-50">> Terminal serial lista (${dev.pin})</div>
+              <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                 <div class="bg-purple-500 h-full transition-all duration-500 shadow-[0_0_10px_#a855f7]" style="width: ${dev.valor_actual}%"></div>
               </div>
+              <div class="flex justify-between text-[9px] text-slate-500 font-mono">
+                 <span>SENSIBILIDAD</span>
+                 <span class="text-purple-400">${dev.valor_actual}%</span>
+              </div>
+            </div>
+          `;
+          break;
+        case 'DAC':
+          controlHtml = `
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                 <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                 <span class="text-[9px] text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded border border-emerald-400/20">DAC</span>
+              </div>
+              <div class="flex items-center gap-4">
+                <input type="range" class="iot-dynamic-slider flex-grow accent-emerald-400" min="0" max="255" value="${dev.valor_actual}" data-id="${dev.id}" />
+                <span class="text-[10px] font-mono text-emerald-400 w-8 text-right">${dev.valor_actual}</span>
+              </div>
+            </div>
+          `;
+          break;
+        case 'WIFI':
+          const rssi = parseInt(dev.valor_actual) || -50;
+          let color = rssi > -60 ? 'text-green-400' : rssi > -80 ? 'text-yellow-400' : 'text-red-400';
+          controlHtml = `
+            <div class="flex items-center justify-between">
+               <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+               <div class="flex items-center gap-2">
+                 <svg class="w-4 h-4 ${color}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21l-12-18h24z"/></svg>
+                 <span class="text-xs font-mono font-bold ${color}">${rssi} dBm</span>
+               </div>
             </div>
           `;
           break;
@@ -540,7 +605,7 @@ async function setupHardwareControls() {
             <div class="flex items-center justify-between">
               <div class="flex flex-col">
                 <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
-                <span class="text-[9px] text-slate-500">Bus I2S • Data Stream</span>
+                <span class="text-[9px] text-slate-500">Audio Digital • Stream</span>
               </div>
               <div class="flex gap-1 h-6 items-end">
                 <div class="w-1 bg-volti-accent/40 animate-pulse h-2"></div>
@@ -551,20 +616,100 @@ async function setupHardwareControls() {
             </div>
           `;
           break;
+        case 'SERIAL':
+        case 'ONEWIRE':
+          controlHtml = `
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                <span class="text-[9px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 font-bold">${dev.tipo}</span>
+              </div>
+              <div class="bg-black/40 p-2 rounded-lg border border-white/5 font-mono text-[10px] text-green-400 overflow-hidden h-12 flex flex-col-reverse">
+                <div>> ${dev.valor_actual}</div>
+                <div class="opacity-50">> Sincronizando...</div>
+              </div>
+            </div>
+          `;
+          break;
+        case 'IR':
+          controlHtml = `
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+              <div class="flex items-center gap-2">
+                 <div class="w-2 h-2 rounded-full bg-red-500 animate-ping"></div>
+                 <span class="text-[9px] text-red-400 font-bold">RECEPTOR IR</span>
+              </div>
+            </div>
+          `;
+          break;
+        case 'PCNT':
+          controlHtml = `
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between">
+                 <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+              </div>
+              <div class="flex items-baseline gap-2">
+                 <span class="text-2xl font-mono font-bold text-volti-accent">${dev.valor_actual}</span>
+                 <span class="text-[9px] text-slate-500 uppercase tracking-widest">Hz / Pulsos</span>
+              </div>
+            </div>
+          `;
+          break;
+        case 'BLE':
+          controlHtml = `
+            <div class="flex items-center justify-between">
+               <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+               <div class="p-1 px-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-bold flex items-center gap-1">
+                 <div class="w-1 h-1 rounded-full bg-blue-400 animate-pulse"></div>
+                 BLE ACTIVO
+               </div>
+            </div>
+          `;
+          break;
         default:
           controlHtml = `<div class="text-[10px] text-slate-500 p-2 border border-dashed border-white/10 rounded-lg text-center">${dev.nombre} [${dev.tipo}]</div>`;
       }
       
       card.innerHTML = controlHtml;
       container.appendChild(card);
+
+      // Si es ANALOG_IN, inicializar gráfica
+      if (dev.tipo === 'ANALOG_IN') {
+        setTimeout(() => initPinChart(dev.id), 100);
+      }
     });
 
-    // 3. Agregar Event Listeners Dinámicos
     setupDynamicListeners();
 
   } catch(e) {
     container.innerHTML = `<div class="text-red-400 text-xs p-4 text-center">Error al conectar con la base de datos IoT.</div>`;
   }
+}
+
+function initPinChart(devId) {
+  const ctx = document.getElementById(`chart-${devId}`)?.getContext('2d');
+  if(!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array(20).fill(''),
+      datasets: [{
+        data: Array(20).fill(0),
+        borderColor: '#0db9f2',
+        borderWidth: 1.5,
+        fill: true,
+        backgroundColor: 'rgba(13, 185, 242, 0.05)',
+        tension: 0.4,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { display: false } }
+    }
+  });
 }
 
 function setupDynamicListeners() {
@@ -573,12 +718,13 @@ function setupDynamicListeners() {
         el.addEventListener('change', async (e) => {
             const id = e.target.dataset.id;
             const val = e.target.checked ? '1' : '0';
-            console.log(`📡 Orden dinámica: ${id} -> ${val}`);
+            
+            // Si es PWM, el toggle puede poner el valor al 100% o 0% o simplemente enviar estado
             await fetch('/api/hardware', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'X-API-KEY': 'v0ltio_Acc3ss_2026_Secur3'
+                    'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
                 },
                 body: JSON.stringify({ id_dispositivo: id, estado_encendido: e.target.checked, valor: val })
             });
@@ -598,7 +744,7 @@ function setupDynamicListeners() {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'X-API-KEY': 'v0ltio_Acc3ss_2026_Secur3'
+                    'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
                 },
                 body: JSON.stringify({ id_dispositivo: id, poder_porcentaje: parseInt(val), valor: val })
             });

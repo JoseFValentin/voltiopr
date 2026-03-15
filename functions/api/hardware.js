@@ -1,6 +1,6 @@
-// ==============================================================
 // BACKEND: API DE CONTROL DE HARDWARE IoT (Unificada)
 // ==============================================================
+import { getUserFromToken } from './utils.js';
 
 // La llave secreta que debe enviar el hardware
 const ACCESS_KEY_SECRET = "v0ltio_Acc3ss_2026_Secur3";
@@ -11,26 +11,45 @@ function isAuthorized(request) {
 }
 
 export async function onRequestGet({ request, env }) {
-  if (!isAuthorized(request)) {
-    return new Response(JSON.stringify({ error: "No autorizado. Falta X-API-KEY válida." }), { status: 401 });
+  const isHardware = request.headers.get("X-API-KEY") === ACCESS_KEY_SECRET;
+  const userId = !isHardware ? getUserFromToken(request) : null;
+
+  if (!isHardware && !userId) {
+    return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401 });
   }
+
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
 
     if (id) {
-        // Si pide un ID específico, devolvemos solo ese dispositivo
-        const device = await env.DB.prepare('SELECT * FROM iot_config WHERE id = ?').bind(id).first();
+        // Validación de propiedad si es desde la web
+        const query = userId 
+          ? 'SELECT * FROM iot_config WHERE id = ? AND usuario_id = ?'
+          : 'SELECT * FROM iot_config WHERE id = ?';
+        
+        const params = userId ? [id, userId] : [id];
+        const device = await env.DB.prepare(query).bind(...params).first();
+        
+        if (!device && userId) {
+           return new Response(JSON.stringify({ error: "Dispositivo no encontrado o no pertenece al usuario" }), { status: 404 });
+        }
+        
         return new Response(JSON.stringify(device), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Si no pide ID, devolvemos todo (para la web interna)
+    // Para la web, devolvemos solo lo del usuario
+    if (userId) {
+        const { results } = await env.DB.prepare('SELECT * FROM iot_config WHERE usuario_id = ?').bind(userId).all();
+        return new Response(JSON.stringify({ success: true, datos_iot: results }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    // Si es el hardware (NodeMCU), por ahora devolvemos todo o podrías filtrar por MAC si la tuviéramos
     const { results } = await env.DB.prepare('SELECT * FROM iot_config').all();
-    
-    return new Response(JSON.stringify({ 
-      success: true, 
-      datos_iot: results 
-    }), {
+    return new Response(JSON.stringify({ success: true, datos_iot: results }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -40,15 +59,17 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!isAuthorized(request)) {
+  const isHardware = request.headers.get("X-API-KEY") === ACCESS_KEY_SECRET;
+  const userId = !isHardware ? getUserFromToken(request) : null;
+
+  if (!isHardware && !userId) {
     return new Response(JSON.stringify({ error: "Acceso denegado" }), { status: 401 });
   }
+
   try {
     const orden = await request.json();
     const id = orden.id_dispositivo;
     
-    // El valor puede venir de un toggle (estado_encendido) o un slider (poder_porcentaje)
-    // Lo normalizamos a texto para la columna 'valor_actual'
     let nuevoValor = orden.valor;
     if (nuevoValor === undefined) {
         if (orden.estado_encendido !== undefined) {
@@ -63,11 +84,15 @@ export async function onRequestPost({ request, env }) {
     }
 
     // Actualizamos la tabla de configuración dinámica
-    const stmt = env.DB.prepare('UPDATE iot_config SET valor_actual = ? WHERE id = ?');
-    const result = await stmt.bind(nuevoValor, id).run();
+    const query = userId 
+      ? 'UPDATE iot_config SET valor_actual = ? WHERE id = ? AND usuario_id = ?'
+      : 'UPDATE iot_config SET valor_actual = ? WHERE id = ?';
+    
+    const params = userId ? [nuevoValor, id, userId] : [nuevoValor, id];
+    const result = await env.DB.prepare(query).bind(...params).run();
 
-    if (result.meta.changes === 0) {
-        // Si no existe en iot_config, intentamos en la tabla dispositivos (Compatibilidad)
+    if (result.meta.changes === 0 && !userId) {
+        // Legacy support solo si no hay userId (hardware directo a tabla antigua)
         const stmtLegacy = env.DB.prepare('UPDATE dispositivos SET estado_encendido = ?, poder_porcentaje = ? WHERE id = ?');
         const isEncendido = nuevoValor === "1" || parseInt(nuevoValor) > 0;
         const subPotencia = parseInt(nuevoValor) || 0;

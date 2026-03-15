@@ -37,7 +37,35 @@ export async function hashPassword(password) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+
 export async function verifyPassword(password, hash) {
   const newHash = await hashPassword(password);
   return newHash === hash;
+}
+
+/**
+ * Extrae el ID de usuario desde el token de sesión
+ * @param {Request} request 
+ * @returns {number|null} ID del usuario o null si no es válido
+ */
+export function getUserFromToken(request) {
+  const authHeader = request.headers.get("Authorization");
+  const token = authHeader ? authHeader.replace("Bearer ", "") : null;
+  
+  if (!token && request.url.includes('/api/')) {
+    // Fallback: buscar en cookies o query params si es necesario (opcional)
+  }
+
+  if (token && token.startsWith("SESSION_")) {
+    try {
+      const payload = atob(token.replace("SESSION_", ""));
+      // El formato que usamos en login.js es: crypto.randomUUID() + usuario.id
+      // El UUID v4 tiene 36 caracteres.
+      const userId = payload.substring(36);
+      return parseInt(userId);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
 }

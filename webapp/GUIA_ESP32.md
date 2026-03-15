@@ -1,107 +1,140 @@
-# 🚀 Guía de Configuración: ESP32 + VoltioPR
+# 🚀 Guía Maestra: ESP32 + VoltioPR (Protocolos Totales)
 
-El **ESP32** es mucho más potente y flexible que el ESP8266. Aquí te explicamos cómo aprovecharlo con VoltioPR.
+El **ESP32** es la joya de la corona para IoT. Esta guía te enseña a implementar desde lo básico hasta protocolos industriales y multimedia.
 
-## 1. Configuración de Campos en la Pantalla de Pines
+## 1. Tipos de Interfaz Soportados en VoltioPR
 
-### A. Nombre del Dispositivo
-*   **Ejemplo:** `Aire Acondicionado`, `Dimmer Sala`, `Medidor Voltaje`.
+Al configurar tu ESP32 en la web, elige el tipo correcto para habilitar el control adecuado:
 
-### B. ID del Dispositivo (Hardware ID)
-*   **Importante:** Este ID debe coincidir exactamente con el que pongas en tu código Arduino.
-*   **Ejemplo:** `esp32_central_01`.
+### A. Básicos (Control Directo)
+*   **DIGITAL_OUT**: Luces, Motores (On/Off).
+*   **DIGITAL_IN**: Botones, Sensores PIR.
+*   **PWM**: Control de brillo de LEDs o velocidad de motores DC.
+*   **ANALOG_IN (ADC)**: Sensores de voltaje, potenciómetros, LDR.
+*   **DAC**: Salida analógica pura (Conversión Digital a Analógico) para audio o voltajes precisos.
 
-### C. Pin de Hardware (GPIO)
-*   **Ventaja:** En ESP32, la mayoría de las veces el número impreso en la placa (G2, G4, G12) es el número real del **GPIO**.
-*   **Pines Favoritos:**
-    *   `GPIO 2` (Suelen tener un LED integrado en la placa).
-    *   `GPIO 4, 5, 12, 13, 14, 25, 26, 27` (Pines seguros para salida).
-*   **Ejemplo:** Si usas el pin **G4**, en la web escribe **4**.
+### B. Comunicación Industrial y Sensores
+*   **I2C / SPI / SERIAL**: Pantallas OLED, sensores de presión, básculas.
+*   **ONEWIRE**: Sensores de temperatura `DS18B20`.
+*   **CAN BUS (TWAI)**: El ESP32 tiene un controlador CAN nativo para diagnósticos automotrices.
 
-### D. Tipo de Señal
-*   **DIGITAL_OUT:** Relés, electroválvulas.
-*   **PWM:** El ESP32 es excelente para esto. Se usa para dimers de LEDs o ventiladores.
-*   **ANALOG_IN:** El ESP32 tiene muchos pines analógicos (ADC). Ideales para voltímetros o sensores de temperatura analógicos.
+### C. Sensores Internos del ESP32
+*   **TOUCH**: Pines que detectan el toque humano sin botones físicos.
+*   **HALL**: Sensor integrado que detecta campos magnéticos (imanes).
+
+### D. Inalámbrico
+*   **WIFI / RSSI**: Monitorea la calidad de la señal en tiempo real.
 
 ---
 
-## 2. Ejemplo Práctico: Control de Intensidad LED (PWM)
+## 2. Ejemplo de Código "Todo en Uno"
 
-En este ejemplo, configuraremos un LED para variar su brillo desde la web de VoltioPR.
-
-### Configuración en la Web:
-1.  **Nombre:** `Luz Regulable`
-2.  **ID:** `esp32_central_01`
-3.  **Pin:** `4`
-4.  **Tipo:** `PWM` (Esto habilitará un control deslizante/slider en el Dashboard).
-
-### Código Arduino para ESP32:
+Este programa demuestra cómo enviar y recibir datos de múltiples protocolos simultáneamente.
 
 ```cpp
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <Wire.h> // Para I2C
 
+// --- DATOS DEL USUARIO ---
 const char* ssid = "TU_WIFI";
 const char* password = "TU_PASSWORD";
-const char* host = "https://tu-app.voltiopr.pages.dev/api/hardware?id=esp32_central_01";
-const char* apiKey = "v0ltio_Acc3ss_2026_Secur3"; // Llave de acceso configurada en el servidor
-
-// Configuración PWM ESP32
-const int ledPin = 4; // GPIO 4 (Vínculo con la Web)
-const int freq = 5000;
-const int ledChannel = 0;
-const int resolution = 8; // 0 a 255
+const char* serverUrl = "https://tu-app.voltiopr.pages.dev/api/hardware";
+const char* apiKey = "v0ltio_Acc3ss_2026_Secur3"; // Tu llave de seguridad
 
 void setup() {
   Serial.begin(115200);
   
-  // Configurar canal PWM
-  ledcSetup(ledChannel, freq, resolution);
-  ledcAttachPin(ledPin, ledChannel);
+  // 1. Configurar Pines Básicos
+  pinMode(2, OUTPUT);    // LED Interno (Digital Out)
+  pinMode(4, INPUT);     // Sensor Puerta (Digital In)
+  
+  // 2. Configurar PWM (Cercano a PIN 25)
+  ledcSetup(0, 5000, 8); // Canal 0, 5kHz, 8 bits
+  ledcAttachPin(25, 0);  // GPIO 25
   
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) { delay(500); }
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  Serial.println("\n¡Conectado!");
 }
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
+    WiFiClientSecure client;
+    client.setInsecure(); // Para pruebas rápidas
     HTTPClient http;
-    http.begin(host);
-    http.addHeader("X-API-KEY", apiKey); // Enviar llave de acceso
+
+    // --- PASO 1: ENVIAR TELEMETRÍA (POST) ---
+    // Aquí enviamos valores de Sensores Táctiles, Magnéticos y WiFi
+    http.begin(client, serverUrl);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-API-KEY", apiKey);
+
+    StaticJsonDocument<512> postDoc;
+    
+    // Hall Sensor (Magnético)
+    int hallVal = hallRead(); 
+    // Touch Sensor (Capacitivo en GPIO 12)
+    int touchVal = touchRead(T5); 
+    // WiFi Signal (Inalámbrico)
+    int rssi = WiFi.RSSI();
+
+    // Enviamos un ejemplo de sensor Hall
+    postDoc["id_dispositivo"] = "sensor-magnetico";
+    postDoc["valor"] = String(hallVal);
+    
+    // Enviamos el RSSI del WiFi
+    // postDoc["id_dispositivo"] = "wifi-status"; // Podrías enviar varios en bucle
+    // postDoc["valor"] = String(rssi);
+
+    String jsonStr;
+    serializeJson(postDoc, jsonStr);
+    http.POST(jsonStr);
+    http.end();
+
+    // --- PASO 2: RECIBIR ÓRDENES (GET) ---
+    http.begin(client, serverUrl);
+    http.addHeader("X-API-KEY", apiKey);
     
     int httpCode = http.GET();
-    if (httpCode > 0) {
+    if (httpCode == 200) {
       String payload = http.getString();
-      StaticJsonDocument<200> doc;
+      DynamicJsonDocument doc(2048);
       deserializeJson(doc, payload);
-      
-      // Obtener el valor de la web (0-100%)
-      int valorPorcentaje = doc["valor"]; 
-      
-      // Convertir 0-100% a 0-255 (resolución 8bits)
-      int dutyCycle = map(valorPorcentaje, 0, 100, 0, 255);
-      
-      ledcWrite(ledChannel, dutyCycle);
-      Serial.print("Brillo actualizado: ");
-      Serial.println(valorPorcentaje);
+
+      JsonArray items = doc["datos_iot"];
+      for (JsonObject item : items) {
+        String id = item["id"];
+        String val = item["valor_actual"];
+
+        // Control de PWM (Dimmer)
+        if (id == "led-dimmer") {
+          int power = val.toInt();
+          ledcWrite(0, map(power, 0, 100, 0, 255));
+        }
+        
+        // Control de Salida Analógica (DAC en GPIO 26)
+        if (id == "voltaje-salida") {
+          dacWrite(26, val.toInt()); // 0 a 255 directos
+        }
+      }
     }
     http.end();
   }
-  delay(2000); // Revisar cada 2 segundos
+  delay(2000); // Sincroniza cada 2 segundos
 }
 ```
 
----
+## 3. Tabla de Pines Recomendados (ESP32)
 
-## 3. Resumen de Diferencias (Configuración Web)
-
-| Característica | ESP8266 | ESP32 |
+| Función | Pines Ideales | Notas |
 | :--- | :--- | :--- |
-| **Referencia Pin** | Usar Tabla (D1=5) | Usar número serigrafía (G4=4) |
-| **Pines Analógicos** | Solo 1 (A0) | Múltiples (ADC1, ADC2) |
-| **PWM** | Software (Limitado) | Hardware (Preciso y potente) |
-| **Velocidad Sync** | Recomendado 5s+ | Recomendado 1s - 3s |
+| **ADC (Analog In)** | 32, 33, 34, 35 | Son los más estables. |
+| **DAC (Analog Out)** | 25, 26 | Únicos pines con salida analógica real. |
+| **Touch** | 4, 12, 13, 14, 15, 27 | Detectan tacto humano. |
+| **I2C** | SDA: 21, SCL: 22 | Se pueden remapear a otros si es necesario. |
+| **PWM** | Casi cualquier pin | Muy flexible en ESP32. |
 
-> [!IMPORTANT]
-> Siempre usa el **Hardware ID** idéntico tanto en el código como en la web, de lo contrario los comandos se perderán en la base de datos.
+> [!CAUTION]
+> Evita los pines **GPIO 0, 2, 5, 12, y 15** para entradas críticas, ya que pueden afectar el arranque (boot) del ESP32 si están en el estado incorrecto al encender.
