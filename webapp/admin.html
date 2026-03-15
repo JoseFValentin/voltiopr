@@ -177,9 +177,8 @@
     <!-- RESUMEN DE TABLAS (cards superiores) -->
     <div id="table-cards" class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <!-- Se generan dinámicamente -->
-      <div class="glass-panel rounded-xl p-3 animate-pulse">
-        <div class="h-3 bg-white/10 rounded w-1/2 mb-2"></div>
-        <div class="h-6 bg-white/10 rounded w-1/3"></div>
+      <div class="glass-panel rounded-xl p-3 animate-pulse text-center p-6">
+        <span class="text-slate-600 text-[10px] uppercase tracking-widest">Iniciando...</span>
       </div>
     </div>
 
@@ -207,25 +206,25 @@
 
       <!-- TABLA DE DATOS -->
       <div id="table-area" class="db-table-wrapper min-h-48">
-        <div class="flex items-center justify-center h-48 opacity-30 text-xs">Selecciona una tabla arriba...</div>
+        <div class="flex items-center justify-center h-48 opacity-30 text-xs uppercase tracking-widest font-bold">Selecciona una tabla...</div>
       </div>
 
       <!-- PAGINACIÓN / INFO INFERIOR -->
       <div class="px-4 py-2 border-t border-white/5 flex items-center justify-between">
         <span id="table-footer-info" class="text-[10px] text-slate-500"></span>
-        <span class="text-[10px] text-slate-600">Máximo 500 registros mostrados</span>
+        <span class="text-[10px] text-slate-600">Máximo 500 registros</span>
       </div>
     </div>
 
   </main>
 
-  <!-- MODAL: INSERTAR REGISTRO -->
+  <!-- MODAL: INSERTAR/EDITAR REGISTRO -->
   <div id="modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center hidden">
-    <div class="glass-panel border border-volti-accent/20 rounded-2xl p-6 w-full max-w-md mx-4 relative">
+    <div class="glass-panel border border-volti-accent/20 rounded-2xl p-6 w-full max-w-md mx-4 relative overflow-hidden">
       <button id="modal-close" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
       </button>
-      <h3 id="modal-title" class="text-base font-bold text-white mb-4">Insertar Registro</h3>
+      <h3 id="modal-title" class="text-base font-bold text-white mb-4">Registro</h3>
       <form id="insert-form" class="space-y-3">
         <div id="insert-fields" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
           <!-- Campos se generan dinámicamente -->
@@ -252,165 +251,118 @@
 
   <script>
   // ==============================================================
-  // ADMIN DB - LÓGICA COMPLETA DE LA PÁGINA
+  // ADMIN DB - LÓGICA COMPLETA DE LA PÁGINA (MAESTRA)
   // ==============================================================
 
-  // ------ Estado global ------
-  let allTables    = [];      // schema de todas las tablas
-  let currentTable = null;   // tabla activa
-  let currentCols  = [];     // columnas de la tabla activa
-  let currentData  = [];     // datos cargados
-  let filteredData = [];     // datos filtrados por búsqueda
-  let editId       = null;   // ID del registro siendo editado
+  let allTables    = [];
+  let currentTable = null;
+  let currentCols  = [];
+  let currentData  = [];
+  let filteredData = [];
+  let editId       = null;
 
-  // ------ Helpers ------
   function toast(msg, type = 'ok') {
-    const el  = document.getElementById('toast');
-    const icon = document.getElementById('toast-icon');
-    const txt  = document.getElementById('toast-msg');
-    icon.textContent = type === 'ok' ? '✓' : '✕';
-    txt.textContent  = msg;
+    const el = document.getElementById('toast');
+    if (!el) return;
+    document.getElementById('toast-icon').textContent = type === 'ok' ? '✓' : '✕';
+    document.getElementById('toast-msg').textContent = msg;
     el.className = `show fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-3 ${type === 'ok' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'}`;
     setTimeout(() => { el.classList.remove('show'); el.classList.add('hide'); }, 3500);
   }
 
   function showModal(show) {
-    document.getElementById('modal-overlay').classList.toggle('hidden', !show);
+    const m = document.getElementById('modal-overlay');
+    if(m) m.classList.toggle('hidden', !show);
   }
 
-  // ------ Cargar schema de tablas ------
   async function loadSchema() {
     try {
-      const res  = await fetch('/api/admin');
-      allTables  = await res.json();
+      const res = await fetch('/api/admin');
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
+      allTables = await res.json();
       renderCards();
       renderTabs();
-      if (allTables.length > 0) selectTable(allTables[0]);
+      if (allTables.length > 0) {
+          const start = allTables.find(t => t.name === 'iot_config') || allTables[0];
+          selectTable(start);
+      }
     } catch(e) {
-      toast('Error al conectar con la API: ' + e.message, 'err');
+      toast('Error al cargar schema: ' + e.message, 'err');
+      document.getElementById('table-area').innerHTML = `<div class="p-10 text-center text-red-400">Error: ${e.message}</div>`;
     }
   }
 
-  // ------ Cards de resumen (arriba) ------
   function renderCards() {
     const container = document.getElementById('table-cards');
+    if(!container) return;
     container.innerHTML = allTables.map(t => `
-      <div onclick="selectTable(${JSON.stringify(t).replace(/"/g, '&quot;')})"
-           class="glass-panel rounded-xl p-3 cursor-pointer hover:border-volti-accent/40 border border-transparent transition group"
-           title="Ver tabla ${t.name}">
+      <div onclick="selectTableByName('${t.name}')" class="glass-panel rounded-xl p-3 cursor-pointer hover:border-volti-accent/40 border border-transparent transition group">
         <div class="flex items-center gap-2 mb-2">
-          <svg class="w-4 h-4 text-volti-accent opacity-60 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-          </svg>
-          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-volti-accent transition truncate">${t.name}</span>
+          <svg class="w-4 h-4 text-volti-accent opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-volti-accent transition">${t.name}</span>
         </div>
         <div class="text-2xl font-black text-white">${t.rows ?? '—'}</div>
-        <div class="text-[9px] text-slate-500 mt-0.5">${(t.columns || []).length} columnas</div>
-        ${t.error ? `<div class="text-[9px] text-red-400 mt-1">⚠ ${t.error}</div>` : ''}
+        <div class="text-[9px] text-slate-500 mt-0.5">${(t.columns || []).length} cols</div>
+        ${t.error ? `<div class="text-[8px] text-red-500 mt-1 uppercase font-bold">${t.error}</div>` : ''}
       </div>
     `).join('');
   }
 
-  // ------ Tabs ------
   function renderTabs() {
     const bar = document.getElementById('tab-bar');
+    if(!bar) return;
     bar.innerHTML = allTables.map(t => `
-      <button id="tab-${t.name}"
-              onclick="selectTable(${JSON.stringify(t).replace(/"/g, '&quot;')})"
-              class="tab-btn px-5 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
-        ${t.name}
-      </button>
+      <button id="tab-${t.name}" onclick="selectTableByName('${t.name}')" class="tab-btn px-5 py-3 text-xs font-bold uppercase tracking-wider">${t.name}</button>
     `).join('');
   }
 
-  // ------ Seleccionar tabla activa ------
-  window.selectTable = async function(tableInfo) {
-    currentTable = tableInfo.name;
-    currentCols  = tableInfo.columns || [];
-
-    // Activar tab
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    const activeTab = document.getElementById('tab-' + tableInfo.name);
-    if (activeTab) activeTab.classList.add('active');
-
-    // Limpiar búsqueda
-    document.getElementById('search-input').value = '';
-
-    // Cargar datos
-    await loadTableData();
+  window.selectTableByName = function(name) {
+    const t = allTables.find(x => x.name === name);
+    if(t) selectTable(t);
   };
 
-  // ------ Cargar datos de tabla ------
-  async function loadTableData() {
-    if (!currentTable) return;
-    const area = document.getElementById('table-area');
-    area.innerHTML = `<div class="flex items-center justify-center h-32 opacity-20 text-xs">Cargando ${currentTable}...</div>`;
+  function selectTable(t) {
+    currentTable = t.name;
+    currentCols = t.columns || [];
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + t.name)?.classList.add('active');
+    loadTableData();
+  }
 
+  async function loadTableData() {
+    const area = document.getElementById('table-area');
+    area.innerHTML = `<div class="flex flex-col items-center justify-center h-48 opacity-20"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-volti-accent mb-2"></div><span class="text-[10px] uppercase">Leyendo ${currentTable}...</span></div>`;
     try {
       const res = await fetch('/api/admin?table=' + currentTable);
-      currentData  = await res.json();
-      filteredData = [...currentData];
-
-      if (!Array.isArray(currentData)) throw new Error(currentData.error || 'Formato inesperado');
-
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error(data.error || 'Inválido');
+      currentData = data;
+      filteredData = [...data];
       renderTable(filteredData);
     } catch(e) {
-      area.innerHTML = `<div class="p-6 text-red-400 text-xs">Error: ${e.message}</div>`;
+      area.innerHTML = `<div class="p-10 text-center text-red-400 text-[10px] uppercase font-bold">Error: ${e.message}</div>`;
     }
   }
 
-  // ------ Renderizar tabla ------
   function renderTable(rows) {
     const area = document.getElementById('table-area');
-
-    // Obtener PK
-    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {}).name || 'id';
-
-    // Actualizar counters
-    document.getElementById('table-row-count').textContent = `${rows.length} registros · ${currentTable}`;
-    document.getElementById('table-footer-info').textContent = rows.length > 0
-      ? `PK: "${pk}" · ${currentCols.length} columnas`
-      : 'Tabla vacía';
-
+    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {name:'id'}).name;
+    document.getElementById('table-row-count').textContent = `${rows.length} registros en ${currentTable}`;
     if (rows.length === 0) {
-      area.innerHTML = `<div class="flex flex-col items-center justify-center h-32 opacity-30 gap-2">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
-        <span class="text-xs">Sin registros en esta tabla</span>
-      </div>`;
+      area.innerHTML = `<div class="p-10 text-center opacity-30 text-[10px] uppercase tracking-widest font-bold">Sin datos</div>`;
       return;
     }
-
     const headers = Object.keys(rows[0]);
-
     area.innerHTML = `
       <table class="data-table">
-        <thead>
-          <tr>
-            ${headers.map(h => `<th>${h}</th>`).join('')}
-            <th style="width:60px;">Acción</th>
-          </tr>
-        </thead>
-        <tbody id="tbody-data">
+        <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}<th class="text-center">Acción</th></tr></thead>
+        <tbody>
           ${rows.map((row, idx) => `
-            <tr style="animation-delay:${idx * 0.02}s">
-              ${headers.map(h => `<td class="${h === pk ? 'pk-col' : ''}" title="${String(row[h] ?? '')}">
-                ${row[h] !== null && row[h] !== undefined ? String(row[h]) : '<span class="opacity-25 italic text-[10px]">null</span>'}
-              </td>`).join('')}
-              <td class="flex items-center gap-1">
-                <button onclick="editRow(${idx})"
-                        title="Editar registro"
-                        class="p-1.5 text-volti-accent/50 hover:text-volti-accent hover:bg-volti-accent/10 rounded-lg transition">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                  </svg>
-                </button>
-                <button onclick="deleteRow('${row[pk]}')"
-                        title="Eliminar registro"
-                        class="p-1.5 text-red-400/50 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                  </svg>
-                </button>
+            <tr>
+              ${headers.map(h => `<td class="${h === pk ? 'pk-col':''}" title="${row[h]}">${row[h] ?? 'null'}</td>`).join('')}
+              <td class="text-center">
+                <button onclick="editRow(${idx})" class="p-1.5 text-volti-accent/40 hover:text-volti-accent transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+                <button onclick="deleteRow('${row[pk]}')" class="p-1.5 text-red-400/30 hover:text-red-400 transition ml-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
               </td>
             </tr>
           `).join('')}
@@ -418,184 +370,100 @@
       </table>`;
   }
 
-  // ------ Búsqueda en tabla ------
   document.getElementById('search-input').addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase();
-    if (!q) {
-      filteredData = [...currentData];
-    } else {
-      filteredData = currentData.filter(row =>
-        Object.values(row).some(v => String(v ?? '').toLowerCase().includes(q))
-      );
-    }
+    filteredData = q ? currentData.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(q))) : [...currentData];
     renderTable(filteredData);
   });
 
-  // ------ Recargar ------
-  document.getElementById('btn-reload').addEventListener('click', async () => {
-    await loadSchema();
-    toast('Datos actualizados');
-  });
-
-  // ------ Eliminar fila ------
-  window.deleteRow = async function(id) {
-    if (!confirm(`¿Eliminar el registro con ID "${id}" de la tabla "${currentTable}"?\n\nEsta acción no se puede deshacer.`)) return;
-
-    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {}).name || 'id';
-
+  window.deleteRow = async (id) => {
+    if(!confirm('¿Borrar registro?')) return;
+    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {name:'id'}).name;
     try {
-      const res = await fetch(`/api/admin?table=${currentTable}&id=${encodeURIComponent(id)}&pk=${pk}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast(`Registro eliminado de "${currentTable}"`);
-      await loadTableData();
-    } catch(e) {
-      toast('Error: ' + e.message, 'err');
-    }
+      const r = await fetch(`/api/admin?table=${currentTable}&id=${encodeURIComponent(id)}&pk=${pk}`, {method:'DELETE'});
+      if(!r.ok) throw new Error('Error delete');
+      toast('Eliminado');
+      loadTableData();
+    } catch(e) { toast(e.message, 'err'); }
   };
 
-  // ------ Modal de Insertar ------
-  document.getElementById('btn-insert').addEventListener('click', () => {
-    editId = null; // Modo insertar
-    openModal();
-  });
-
-  window.editRow = function(idx) {
-    const row = filteredData[idx];
-    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {}).name || 'id';
-    editId = row[pk];
-    openModal(row);
+  window.editRow = (idx) => {
+    const r = filteredData[idx];
+    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {name:'id'}).name;
+    editId = r[pk];
+    openModal(r);
   };
+
+  document.getElementById('btn-insert').addEventListener('click', () => { editId = null; openModal(); });
 
   function openModal(data = null) {
-    if (!currentTable || currentCols.length === 0) {
-      toast('Selecciona una tabla primero', 'err');
-      return;
-    }
-
-    const fieldsContainer = document.getElementById('insert-fields');
-    document.getElementById('modal-title').textContent = data ? `Editar en "${currentTable}"` : `Insertar en "${currentTable}"`;
-
-    // Generar campos basados en columnas (saltar PK autoincrement)
+    const fields = document.getElementById('insert-fields');
+    document.getElementById('modal-title').textContent = data ? 'Editar' : 'Insertar';
     const editableCols = currentCols.filter(c => !(c.pk && c.type === 'INTEGER'));
+    
+    fields.innerHTML = editableCols.map(c => {
+      const isDate = c.type?.toLowerCase().includes('datetime');
+      const isType = currentTable === 'iot_config' && c.name === 'tipo';
+      const label = `<label class="text-[10px] font-bold text-slate-500 uppercase flex justify-between mb-1">
+        <span>${c.name} ${c.pk ? '<span class="text-volti-accent">(PK)</span>':''}</span>
+        ${isDate ? '<button type="button" class="text-volti-accent" onclick="this.parentElement.nextElementSibling.value=new Date(new Date().getTime() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)">Ahora</button>':''}
+      </label>`;
 
-    if (editableCols.length === 0) {
-      toast('Esta tabla no tiene campos editables', 'err');
-      return;
-    }
-
-    fieldsContainer.innerHTML = editableCols.map(col => {
-      const isDate = col.type && col.type.toLowerCase().includes('datetime');
-      const isTypeField = currentTable === 'iot_config' && col.name === 'tipo';
-      
-      const labelHtml = `
-        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-          <span>${col.name} <span class="type-badge ml-1">${col.type || 'TEXT'}</span></span>
-          ${col.pk ? '<span class="text-volti-accent text-[8px]">PK</span>' : ''}
-          ${isDate ? `<button type="button" class="text-[8px] text-volti-accent hover:underline" onclick="this.parentElement.nextElementSibling.value = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)">Hoy/Ahora</button>` : ''}
-        </label>`;
-
-      if (isTypeField) {
-        return `
-        <div class="space-y-1">
-          ${labelHtml}
-          <select name="${col.name}" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-volti-accent/50 focus:border-volti-accent/50 appearance-none cursor-pointer">
-            <option value="">-- Seleccionar Protocolo --</option>
-            <option value="DIGITAL_OUT">🔌 DIGITAL_OUT (Salida)</option>
-            <option value="DIGITAL_IN">🔘 DIGITAL_IN (Entrada)</option>
-            <option value="PWM">🔆 PWM (Intensidad)</option>
-            <option value="ANALOG_IN">📉 ANALOG_IN (ADC)</option>
-            <option value="DAC">🔊 DAC (Analógico Real)</option>
-            <option value="I2C">🔗 I2C (Bus)</option>
-            <option value="SPI">🚀 SPI (Bus)</option>
-            <option value="SERIAL">📟 SERIAL (UART)</option>
-            <option value="ONEWIRE">🌡️ ONEWIRE</option>
-            <option value="CAN">🏎️ CAN BUS</option>
-            <option value="I2S">🎵 I2S AUDIO</option>
-            <option value="TOUCH">👆 TOUCH (Capacitivo)</option>
-            <option value="HALL">🧲 HALL (Magnético)</option>
-            <option value="WIFI">📶 WIFI (RSSI)</option>
-            <option value="PCNT">⏲️ PCNT (Contador)</option>
-          </select>
-        </div>`;
+      if (isType) {
+        return `<div class="space-y-1">${label}<select name="${c.name}" class="w-full bg-slate-900 text-white rounded-xl p-2 outline-none border border-white/10 text-xs">
+          <option value="">-- Protocolo --</option>
+          <option value="DIGITAL_OUT" ${data?.tipo==='DIGITAL_OUT'?'selected':''}>DIGITAL_OUT</option>
+          <option value="DIGITAL_IN" ${data?.tipo==='DIGITAL_IN'?'selected':''}>DIGITAL_IN</option>
+          <option value="PWM" ${data?.tipo==='PWM'?'selected':''}>PWM</option>
+          <option value="ANALOG_IN" ${data?.tipo==='ANALOG_IN'?'selected':''}>ANALOG_IN</option>
+          <option value="DAC" ${data?.tipo==='DAC'?'selected':''}>DAC</option>
+          <option value="I2C" ${data?.tipo==='I2C'?'selected':''}>I2C</option>
+          <option value="SPI" ${data?.tipo==='SPI'?'selected':''}>SPI</option>
+          <option value="SERIAL" ${data?.tipo==='SERIAL'?'selected':''}>SERIAL</option>
+          <option value="ONEWIRE" ${data?.tipo==='ONEWIRE'?'selected':''}>ONEWIRE</option>
+          <option value="CAN" ${data?.tipo==='CAN'?'selected':''}>CAN</option>
+          <option value="I2S" ${data?.tipo==='I2S'?'selected':''}>I2S</option>
+          <option value="TOUCH" ${data?.tipo==='TOUCH'?'selected':''}>TOUCH</option>
+          <option value="HALL" ${data?.tipo==='HALL'?'selected':''}>HALL</option>
+          <option value="WIFI" ${data?.tipo==='WIFI'?'selected':''}>WIFI</option>
+          <option value="PCNT" ${data?.tipo==='PCNT'?'selected':''}>PCNT</option>
+        </select></div>`;
       }
 
-      return `
-      <div class="space-y-1">
-        ${labelHtml}
-        <input
-          type="${col.type === 'INTEGER' || col.type === 'BOOLEAN' ? 'number' : isDate ? 'datetime-local' : 'text'}"
-          name="${col.name}"
-          value="${data ? (data[col.name] ?? '') : (currentTable === 'iot_config' && col.name === 'usuario_id' ? '2' : '')}"
-          ${data && col.pk ? 'disabled' : ''}
-          placeholder="${col.name}"
-          class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-volti-accent/50 focus:border-volti-accent/50 ${data && col.pk ? 'opacity-50' : ''}"
-        />
-      </div>
-    `}).join('');
+      return `<div class="space-y-1">${label}<input name="${c.name}" type="${isDate?'datetime-local':(c.type==='INTEGER'?'number':'text')}" value="${data?data[c.name] : (currentTable==='iot_config'&&c.name==='usuario_id'?'2':'')}" ${data&&c.pk?'disabled':''} class="w-full bg-white/5 text-white rounded-xl p-2 outline-none border border-white/10 text-xs ${data&&c.pk?'opacity-30':''}" /></div>`;
+    }).join('');
 
-    // Pre-completar fechas automáticamente para insertar
-    if (!data) {
-        setTimeout(() => {
-           const now = new Date();
-           const offset = now.getTimezoneOffset() * 60000;
-           const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
-           fieldsContainer.querySelectorAll('input[type="datetime-local"]').forEach(input => {
-              if (!input.value) input.value = localISOTime;
-           });
-        }, 50);
+    if(!data) {
+      setTimeout(() => {
+        const now = new Date();
+        const local = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+        fields.querySelectorAll('input[type="datetime-local"]').forEach(i => { if(!i.value) i.value=local; });
+      }, 50);
     }
-
     showModal(true);
-  });
+  }
 
   document.getElementById('modal-close').addEventListener('click', () => showModal(false));
   document.getElementById('modal-cancel').addEventListener('click', () => showModal(false));
-
-  // ------ Submit del formulario de insertar ------
   document.getElementById('insert-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
     const data = {};
-    for (const [key, val] of formData.entries()) {
-      if (val.trim() !== '') data[key] = val.trim();
-    }
-
-    if (Object.keys(data).length === 0) {
-      toast('Completa al menos un campo', 'err');
-      return;
-    }
-
+    new FormData(e.target).forEach((v,k) => { if(v.trim()!=='') data[k]=v.trim(); });
+    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {name:'id'}).name;
+    const isEdit = editId !== null;
     try {
-      const pk = (currentCols.find(c => c.pk) || currentCols[0] || {}).name || 'id';
-      const isEdit = editId !== null;
-      
-      const res = await fetch('/api/admin', {
+      const r = await fetch('/api/admin', {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            table: currentTable, 
-            data, 
-            pk: isEdit ? pk : undefined,
-            id: isEdit ? editId : undefined
-        })
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ table: currentTable, data, pk: isEdit ? pk : undefined, id: isEdit ? editId : undefined })
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-      toast(result.mensaje || (isEdit ? 'Registro actualizado' : 'Registro insertado'));
+      if(!r.ok) throw new Error('Error al guardar');
+      toast(isEdit ? 'Actualizado' : 'Insertado');
       showModal(false);
-      await loadTableData();
-    } catch(e) {
-      toast('Error: ' + e.message, 'err');
-    }
+      loadTableData();
+    } catch(e) { toast(e.message, 'err'); }
   });
 
-  // ------ Cerrar modal con Escape ------
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') showModal(false);
-  });
-
-  // ------ Iniciar ------
   loadSchema();
   </script>
 </body>
