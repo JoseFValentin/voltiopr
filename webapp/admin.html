@@ -464,21 +464,33 @@
       return;
     }
 
-    fieldsContainer.innerHTML = editableCols.map(col => `
+    fieldsContainer.innerHTML = editableCols.map(col => {
+      const isDate = col.type && col.type.toLowerCase().includes('datetime');
+      return `
       <div class="space-y-1">
-        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-          ${col.name}
-          <span class="type-badge">${col.type || 'TEXT'}</span>
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+          <span>${col.name} <span class="type-badge ml-1">${col.type || 'TEXT'}</span></span>
           ${col.pk ? '<span class="text-volti-accent text-[8px]">PK</span>' : ''}
+          ${isDate ? `<button type="button" class="text-[8px] text-volti-accent hover:underline" onclick="this.parentElement.nextElementSibling.value = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)">Hoy/Ahora</button>` : ''}
         </label>
         <input
-          type="${col.type === 'INTEGER' || col.type === 'BOOLEAN' ? 'number' : col.type === 'DATETIME' ? 'datetime-local' : 'text'}"
+          type="${col.type === 'INTEGER' || col.type === 'BOOLEAN' ? 'number' : isDate ? 'datetime-local' : 'text'}"
           name="${col.name}"
           placeholder="${col.name}"
           class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-volti-accent/50 focus:border-volti-accent/50"
         />
       </div>
-    `).join('');
+    `}).join('');
+
+    // Pre-completar fechas automáticamente para evitar el error de "hora no añadida"
+    setTimeout(() => {
+       const now = new Date();
+       const offset = now.getTimezoneOffset() * 60000;
+       const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
+       fieldsContainer.querySelectorAll('input[type="datetime-local"]').forEach(input => {
+          if (!input.value) input.value = localISOTime;
+       });
+    }, 50);
 
     showModal(true);
   });
