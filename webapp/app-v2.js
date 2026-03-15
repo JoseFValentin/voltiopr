@@ -484,6 +484,7 @@ async function setupHardwareControls() {
           const isPWM = dev.tipo === 'PWM';
           const maxLevel = isPWM ? 100 : 1;
           const currentVal = parseInt(dev.valor_actual) || 0;
+          const isOn = currentVal > 0;
           
           controlHtml = `
             <div class="flex flex-col gap-2">
@@ -493,16 +494,18 @@ async function setupHardwareControls() {
                    <span class="text-[8px] text-slate-500 uppercase tracking-tighter">${isPWM ? 'Regulable (PWM)' : 'Interruptor Digital'}</span>
                  </div>
                  <div class="flex items-center gap-2">
-                   <span class="text-[10px] text-volti-accent px-1.5 py-0.5 bg-volti-accent/10 rounded border border-volti-accent/20">${dev.pin}</span>
+                   <span id="${dev.id}-status-text" class="text-[9px] font-black ${isOn ? 'text-volti-accent' : 'text-slate-500'} transition-all">${isOn ? 'ON' : 'OFF'}</span>
                    <div class="relative inline-block w-8 align-middle select-none">
-                     <input type="checkbox" id="${dev.id}-toggle" ${currentVal > 0 ? 'checked' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-4 h-4 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
+                     <input type="checkbox" id="${dev.id}-toggle" ${isOn ? 'checked' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-4 h-4 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
                      <label for="${dev.id}-toggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-800 cursor-pointer"></label>
                    </div>
                  </div>
               </div>
               <div class="flex items-center gap-4">
                 <input type="range" class="iot-dynamic-slider flex-grow accent-volti-accent" min="0" max="${maxLevel}" value="${currentVal}" data-id="${dev.id}" />
-                <span class="text-[10px] font-mono text-volti-accent w-8 text-right">${currentVal}${isPWM ? '%' : ''}</span>
+                <span class="text-[10px] font-mono text-volti-accent w-12 text-right">
+                    <span id="${dev.id}-val-num">${currentVal}</span>${isPWM ? '%' : ''}
+                </span>
               </div>
             </div>
           `;
@@ -524,12 +527,13 @@ async function setupHardwareControls() {
           `;
           break;
         case 'DIGITAL_IN':
+          const isDigitalOn = dev.valor_actual == '1';
           controlHtml = `
             <div class="flex items-center justify-between">
               <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre} (${dev.pin})</span>
               <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${dev.valor_actual == '1' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}">
-                  ${dev.valor_actual == '1' ? 'ACTIVO' : 'INACTIVO'}
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${isDigitalOn ? 'bg-volti-accent/20 text-volti-accent border border-volti-accent/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}">
+                  ${isDigitalOn ? 'ON' : 'OFF'}
                 </span>
               </div>
             </div>
@@ -714,16 +718,36 @@ function setupDynamicListeners() {
     document.querySelectorAll('.iot-dynamic-toggle').forEach(el => {
         el.addEventListener('change', async (e) => {
             const id = e.target.dataset.id;
-            const val = e.target.checked ? '1' : '0';
+            const checked = e.target.checked;
+            const val = checked ? '1' : '0';
             
-            // Si es PWM, el toggle puede poner el valor al 100% o 0% o simplemente enviar estado
+            // Actualizar UI localmente
+            const statusTxt = document.getElementById(`${id}-status-text`);
+            const slider = document.querySelector(`.iot-dynamic-slider[data-id="${id}"]`);
+            const valNum = document.getElementById(`${id}-val-num`);
+
+            if (statusTxt) {
+                statusTxt.textContent = checked ? 'ON' : 'OFF';
+                statusTxt.className = `text-[9px] font-black ${checked ? 'text-volti-accent' : 'text-slate-500'} transition-all`;
+            }
+
+            if (slider && !checked) {
+                slider.value = 0;
+                if (valNum) valNum.textContent = '0';
+            } else if (slider && checked && slider.value == 0) {
+                // Si encendemos y el slider está en 0, lo ponemos al max
+                const max = slider.getAttribute('max');
+                slider.value = max;
+                if (valNum) valNum.textContent = max;
+            }
+
             await fetch('/api/hardware', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
                 },
-                body: JSON.stringify({ id_dispositivo: id, estado_encendido: e.target.checked, valor: val })
+                body: JSON.stringify({ id_dispositivo: id, estado_encendido: checked, valor: checked ? (slider ? slider.value : '1') : '0' })
             });
         });
     });
@@ -731,8 +755,25 @@ function setupDynamicListeners() {
     // Listeners para Sliders
     document.querySelectorAll('.iot-dynamic-slider').forEach(el => {
         el.addEventListener('input', (e) => {
-            const span = e.target.nextElementSibling;
-            if(span) span.textContent = e.target.value + '%';
+            const id = e.target.dataset.id;
+            const valNum = document.getElementById(`${id}-val-num`);
+            const val = parseInt(e.target.value);
+            if(valNum) valNum.textContent = val;
+
+            // Actualizar toggle y status si movemos el slider
+            const toggle = document.getElementById(`${id}-toggle`);
+            const statusTxt = document.getElementById(`${id}-status-text`);
+            
+            if (toggle) {
+                const shouldBeOn = val > 0;
+                if (toggle.checked !== shouldBeOn) {
+                    toggle.checked = shouldBeOn;
+                    if (statusTxt) {
+                        statusTxt.textContent = shouldBeOn ? 'ON' : 'OFF';
+                        statusTxt.className = `text-[9px] font-black ${shouldBeOn ? 'text-volti-accent' : 'text-slate-500'} transition-all`;
+                    }
+                }
+            }
         });
         el.addEventListener('change', async (e) => {
             const id = e.target.dataset.id;
