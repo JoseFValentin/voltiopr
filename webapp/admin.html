@@ -466,16 +466,47 @@
 
     fieldsContainer.innerHTML = editableCols.map(col => {
       const isDate = col.type && col.type.toLowerCase().includes('datetime');
-      return `
-      <div class="space-y-1">
+      const isTypeField = currentTable === 'iot_config' && col.name === 'tipo';
+      
+      const labelHtml = `
         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
           <span>${col.name} <span class="type-badge ml-1">${col.type || 'TEXT'}</span></span>
           ${col.pk ? '<span class="text-volti-accent text-[8px]">PK</span>' : ''}
           ${isDate ? `<button type="button" class="text-[8px] text-volti-accent hover:underline" onclick="this.parentElement.nextElementSibling.value = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)">Hoy/Ahora</button>` : ''}
-        </label>
+        </label>`;
+
+      if (isTypeField) {
+        return `
+        <div class="space-y-1">
+          ${labelHtml}
+          <select name="${col.name}" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-volti-accent/50 focus:border-volti-accent/50 appearance-none cursor-pointer">
+            <option value="">-- Seleccionar Protocolo --</option>
+            <option value="DIGITAL_OUT">🔌 DIGITAL_OUT (Salida)</option>
+            <option value="DIGITAL_IN">🔘 DIGITAL_IN (Entrada)</option>
+            <option value="PWM">🔆 PWM (Intensidad)</option>
+            <option value="ANALOG_IN">📉 ANALOG_IN (ADC)</option>
+            <option value="DAC">🔊 DAC (Analógico Real)</option>
+            <option value="I2C">🔗 I2C (Bus)</option>
+            <option value="SPI">🚀 SPI (Bus)</option>
+            <option value="SERIAL">📟 SERIAL (UART)</option>
+            <option value="ONEWIRE">🌡️ ONEWIRE</option>
+            <option value="CAN">🏎️ CAN BUS</option>
+            <option value="I2S">🎵 I2S AUDIO</option>
+            <option value="TOUCH">👆 TOUCH (Capacitivo)</option>
+            <option value="HALL">🧲 HALL (Magnético)</option>
+            <option value="WIFI">📶 WIFI (RSSI)</option>
+            <option value="PCNT">⏲️ PCNT (Contador)</option>
+          </select>
+        </div>`;
+      }
+
+      return `
+      <div class="space-y-1">
+        ${labelHtml}
         <input
           type="${col.type === 'INTEGER' || col.type === 'BOOLEAN' ? 'number' : isDate ? 'datetime-local' : 'text'}"
           name="${col.name}"
+          value="${(currentTable === 'iot_config' && col.name === 'usuario_id') ? '1' : ''}"
           placeholder="${col.name}"
           class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-volti-accent/50 focus:border-volti-accent/50"
         />
