@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isLoginPage = document.getElementById('login-form') !== null;
   const isRegisterPage = document.getElementById('register-form') !== null;
   const isDashboardPage = document.getElementById('iot-controls-container') !== null;
-  const isConfigPage = document.getElementById('config-form') !== null;
   const isResetPage = document.getElementById('reset-password-form') !== null;
   const isAdminPage = document.getElementById('table-area') !== null;
 
@@ -29,10 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkUserSession();
     setupDashboardCharts();
     setupHardwareControls();
-  }
-  if (isConfigPage) {
-    checkUserSession();
-    setupConfig();
   }
 
   // Cargar Tema
@@ -365,82 +360,8 @@ function setupRegister() {
   });
 }
 
-// ==============================================================
-// 4. CONFIGURACIÓN DE PINES (Nueva funcionalidad)
-// ==============================================================
-async function setupConfig() {
-  const form = document.getElementById('config-form');
-  const listContainer = document.getElementById('pines-list');
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const data = {
-      nombre: document.getElementById('conf-nombre').value,
-      id: document.getElementById('conf-id').value,
-      pin: document.getElementById('conf-pin').value,
-      tipo: document.getElementById('conf-tipo').value,
-      descripcion: document.getElementById('conf-desc').value
-    };
-
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
-      },
-      body: JSON.stringify(data)
-    });
-    
-    if (res.ok) {
-        showToast('Dispositivo configurado con éxito', 'success');
-        form.reset();
-        loadPines();
-    } else {
-        showToast('Error al guardar configuración', 'error');
-    }
-  });
-
-  // Helper for loading pines with auth
-  async function loadPines() {
-    const res = await fetch('/api/config', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
-    });
-    const pines = await res.json();
-    listContainer.innerHTML = pines.map(p => `
-      <div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition">
-        <div class="flex items-center gap-3">
-            <div class="p-2 bg-volti-accent/10 rounded-lg text-volti-accent font-bold text-[10px] w-12 text-center border border-volti-accent/20">
-                ${p.pin}
-            </div>
-            <div>
-                <p class="font-bold text-xs">${p.nombre}</p>
-                <p class="text-[9px] text-slate-400 uppercase tracking-wider">${p.tipo}</p>
-            </div>
-        </div>
-        <button onclick="deletePin('${p.id}')" class="text-red-400/50 hover:text-red-400 p-2 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        </button>
-      </div>
-    `).join('');
-  }
-
-  window.deletePin = async (id) => {
-    if (confirm('¿Eliminar esta configuración?')) {
-        const res = await fetch(`/api/config?id=${id}`, { 
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
-        });
-        if(res.ok) {
-          showToast('Configuración eliminada', 'info');
-          loadPines();
-        } else {
-          showToast('Error al eliminar', 'error');
-        }
-    }
-  };
-
-  loadPines();
-}
+// 4. MAESTRO HUB: GESTIÓN DE PINES Y SISTEMA
+// La lógica ahora está centralizada en admin.html para ofrecer control total desde un solo lugar.
 
 // ==============================================================
 // 5. DASHBOARD DINÁMICO
@@ -456,7 +377,7 @@ async function setupHardwareControls() {
     const config = await configRes.json();
     
     if (config.length === 0) {
-        container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs italic">No hay dispositivos configurados. Ve a "Configurar ESP" para añadir uno.</div>`;
+        container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs italic">No hay dispositivos configurados. Ve a "Configuración" para añadir uno en la tabla iot_config.</div>`;
         return;
     }
 
