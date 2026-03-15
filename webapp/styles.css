@@ -22,13 +22,14 @@ body {
   margin: 0;
   overflow-x: hidden;
   
-  /* Reducir escala global al 70% */
-  zoom: 0.7;
-  -moz-transform: scale(0.7);
+  /* Ajustar escala global al 80% y centrar */
+  zoom: 0.8;
+  -moz-transform: scale(0.8);
   -moz-transform-origin: top center;
-  transform: scale(0.7);
+  transform: scale(0.8);
   transform-origin: top center;
-  width: 142.85%; /* Compensar el encogimiento para que ocupe el ancho real */
+  width: 125%; /* 100 / 0.8 */
+  margin-left: -12.5%; /* Centrar compensando el escalado */
 }
 
 /* Efecto "Glassmorphism" (Cristal esmerilado translúcido) */
