@@ -261,6 +261,7 @@
   let currentCols  = [];     // columnas de la tabla activa
   let currentData  = [];     // datos cargados
   let filteredData = [];     // datos filtrados por búsqueda
+  let editId       = null;   // ID del registro siendo editado
 
   // ------ Helpers ------
   function toast(msg, type = 'ok') {
@@ -395,7 +396,14 @@
               ${headers.map(h => `<td class="${h === pk ? 'pk-col' : ''}" title="${String(row[h] ?? '')}">
                 ${row[h] !== null && row[h] !== undefined ? String(row[h]) : '<span class="opacity-25 italic text-[10px]">null</span>'}
               </td>`).join('')}
-              <td>
+              <td class="flex items-center gap-1">
+                <button onclick="editRow(${idx})"
+                        title="Editar registro"
+                        class="p-1.5 text-volti-accent/50 hover:text-volti-accent hover:bg-volti-accent/10 rounded-lg transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                </button>
                 <button onclick="deleteRow('${row[pk]}')"
                         title="Eliminar registro"
                         class="p-1.5 text-red-400/50 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition">
@@ -448,13 +456,25 @@
 
   // ------ Modal de Insertar ------
   document.getElementById('btn-insert').addEventListener('click', () => {
+    editId = null; // Modo insertar
+    openModal();
+  });
+
+  window.editRow = function(idx) {
+    const row = filteredData[idx];
+    const pk = (currentCols.find(c => c.pk) || currentCols[0] || {}).name || 'id';
+    editId = row[pk];
+    openModal(row);
+  };
+
+  function openModal(data = null) {
     if (!currentTable || currentCols.length === 0) {
       toast('Selecciona una tabla primero', 'err');
       return;
     }
 
     const fieldsContainer = document.getElementById('insert-fields');
-    document.getElementById('modal-title').textContent = `Insertar en "${currentTable}"`;
+    document.getElementById('modal-title').textContent = data ? `Editar en "${currentTable}"` : `Insertar en "${currentTable}"`;
 
     // Generar campos basados en columnas (saltar PK autoincrement)
     const editableCols = currentCols.filter(c => !(c.pk && c.type === 'INTEGER'));
@@ -506,22 +526,25 @@
         <input
           type="${col.type === 'INTEGER' || col.type === 'BOOLEAN' ? 'number' : isDate ? 'datetime-local' : 'text'}"
           name="${col.name}"
-          value="${(currentTable === 'iot_config' && col.name === 'usuario_id') ? '1' : ''}"
+          value="${data ? (data[col.name] ?? '') : (currentTable === 'iot_config' && col.name === 'usuario_id' ? '2' : '')}"
+          ${data && col.pk ? 'disabled' : ''}
           placeholder="${col.name}"
-          class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-volti-accent/50 focus:border-volti-accent/50"
+          class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-volti-accent/50 focus:border-volti-accent/50 ${data && col.pk ? 'opacity-50' : ''}"
         />
       </div>
     `}).join('');
 
-    // Pre-completar fechas automáticamente para evitar el error de "hora no añadida"
-    setTimeout(() => {
-       const now = new Date();
-       const offset = now.getTimezoneOffset() * 60000;
-       const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
-       fieldsContainer.querySelectorAll('input[type="datetime-local"]').forEach(input => {
-          if (!input.value) input.value = localISOTime;
-       });
-    }, 50);
+    // Pre-completar fechas automáticamente para insertar
+    if (!data) {
+        setTimeout(() => {
+           const now = new Date();
+           const offset = now.getTimezoneOffset() * 60000;
+           const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
+           fieldsContainer.querySelectorAll('input[type="datetime-local"]').forEach(input => {
+              if (!input.value) input.value = localISOTime;
+           });
+        }, 50);
+    }
 
     showModal(true);
   });
@@ -544,14 +567,22 @@
     }
 
     try {
+      const pk = (currentCols.find(c => c.pk) || currentCols[0] || {}).name || 'id';
+      const isEdit = editId !== null;
+      
       const res = await fetch('/api/admin', {
-        method: 'POST',
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: currentTable, data })
+        body: JSON.stringify({ 
+            table: currentTable, 
+            data, 
+            pk: isEdit ? pk : undefined,
+            id: isEdit ? editId : undefined
+        })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
-      toast(result.mensaje || 'Registro insertado');
+      toast(result.mensaje || (isEdit ? 'Registro actualizado' : 'Registro insertado'));
       showModal(false);
       await loadTableData();
     } catch(e) {

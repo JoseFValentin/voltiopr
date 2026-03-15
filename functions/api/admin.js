@@ -116,3 +116,32 @@ export async function onRequestDelete({ request, env }) {
     return new Response(JSON.stringify({ error: 'Error al eliminar: ' + err.message }), { status: 500, headers: CORS_HEADERS });
   }
 }
+
+// ==============================================================
+// PUT: Actualizar un registro existente
+// Body: { table: "iot_config", pk: "id", id: "led-1", data: { ... } }
+// ==============================================================
+export async function onRequestPut({ request, env }) {
+  try {
+    const body = await request.json();
+    const { table, pk, id, data } = body;
+
+    if (!table || !id || !data) {
+      return new Response(JSON.stringify({ error: 'Faltan parámetros: table, id y data son obligatorios' }), { status: 400, headers: CORS_HEADERS });
+    }
+    if (!ALLOWED_TABLES.includes(table)) {
+      return new Response(JSON.stringify({ error: 'Tabla no permitida' }), { status: 403, headers: CORS_HEADERS });
+    }
+
+    const updates = Object.keys(data).map(col => `${col} = ?`).join(', ');
+    const values = [...Object.values(data), id];
+
+    await env.DB.prepare(`UPDATE ${table} SET ${updates} WHERE ${pk || 'id'} = ?`).bind(...values).run();
+
+    return new Response(JSON.stringify({ success: true, mensaje: `Registro actualizado en "${table}"` }), { status: 200, headers: CORS_HEADERS });
+
+  } catch (err) {
+    console.error('Admin PUT error:', err);
+    return new Response(JSON.stringify({ error: 'Error al actualizar: ' + err.message }), { status: 500, headers: CORS_HEADERS });
+  }
+}
