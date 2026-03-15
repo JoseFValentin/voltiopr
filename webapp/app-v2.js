@@ -400,32 +400,49 @@ async function setupHardwareControls() {
       
       switch(dev.tipo) {
         case 'DIGITAL_OUT':
-        case 'PWM':
-          // Unificamos Salida Digital y PWM para que ambos tengan Toggle + Slider (Dimmer)
-          const isPWM = dev.tipo === 'PWM';
-          const maxLevel = isPWM ? 100 : 1;
-          const currentVal = parseInt(dev.valor_actual) || 0;
-          const isOn = currentVal > 0;
-          
+          const currentDigitalVal = parseInt(dev.valor_actual) || 0;
+          const isDigitalOn = currentDigitalVal > 0;
           controlHtml = `
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
                  <div class="flex flex-col">
                    <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
-                   <span class="text-[8px] text-slate-500 uppercase tracking-tighter">${isPWM ? 'Regulable (PWM)' : 'Interruptor Digital'}</span>
+                   <span class="text-[8px] text-slate-500 uppercase tracking-tighter">Interruptor Digital</span>
                  </div>
                  <div class="flex items-center gap-2">
-                   <span id="${dev.id}-status-text" class="text-[9px] font-black ${isOn ? 'text-volti-accent' : 'text-slate-500'} transition-all">${isOn ? 'ON' : 'OFF'}</span>
+                   <span id="${dev.id}-status-text" class="text-[9px] font-black ${isDigitalOn ? 'text-volti-accent' : 'text-slate-500'} transition-all">${isDigitalOn ? 'ON' : 'OFF'}</span>
                    <div class="relative inline-block w-8 align-middle select-none">
-                     <input type="checkbox" id="${dev.id}-toggle" ${isOn ? 'checked' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-4 h-4 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
+                     <input type="checkbox" id="${dev.id}-toggle" ${isDigitalOn ? 'checked' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-4 h-4 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
+                     <label for="${dev.id}-toggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-800 cursor-pointer"></label>
+                   </div>
+                 </div>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 'PWM':
+          const currentPWMVal = parseInt(dev.valor_actual) || 0;
+          const isPWMOn = currentPWMVal > 0;
+          controlHtml = `
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                 <div class="flex flex-col">
+                   <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                   <span class="text-[8px] text-slate-500 uppercase tracking-tighter">Regulable (PWM)</span>
+                 </div>
+                 <div class="flex items-center gap-2">
+                   <span id="${dev.id}-status-text" class="text-[9px] font-black ${isPWMOn ? 'text-volti-accent' : 'text-slate-500'} transition-all">${isPWMOn ? 'ON' : 'OFF'}</span>
+                   <div class="relative inline-block w-8 align-middle select-none">
+                     <input type="checkbox" id="${dev.id}-toggle" ${isPWMOn ? 'checked' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-4 h-4 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
                      <label for="${dev.id}-toggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-800 cursor-pointer"></label>
                    </div>
                  </div>
               </div>
               <div class="flex items-center gap-4">
-                <input type="range" class="iot-dynamic-slider flex-grow accent-volti-accent" min="0" max="${maxLevel}" value="${currentVal}" data-id="${dev.id}" />
+                <input type="range" class="iot-dynamic-slider flex-grow accent-volti-accent" min="0" max="100" value="${currentPWMVal}" data-id="${dev.id}" />
                 <span class="text-[10px] font-mono text-volti-accent w-12 text-right">
-                    <span id="${dev.id}-val-num">${currentVal}</span>${isPWM ? '%' : ''}
+                    <span id="${dev.id}-val-num">${currentPWMVal}</span>%
                 </span>
               </div>
             </div>
