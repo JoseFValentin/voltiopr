@@ -178,6 +178,42 @@
       </div>
     </div>
 
+    <!-- ZONA OTA: UPLOAD FIRMWARE -->
+    <div class="glass-panel border border-volti-accent/30 rounded-2xl p-5 relative overflow-hidden group">
+      <div class="absolute inset-0 bg-volti-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div class="relative z-10 flex flex-col md:flex-row gap-6 md:items-center justify-between">
+        <div>
+           <div class="flex items-center gap-2 mb-1">
+             <svg class="w-5 h-5 text-volti-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+             <h3 class="text-sm font-black text-white uppercase tracking-wider">Actualización OTA (Over-The-Air)</h3>
+           </div>
+           <p class="text-[10px] text-slate-400 max-w-lg">Sube un archivo <span class="text-volti-accent font-mono">.bin</span> compilado desde Arduino IDE para actualizar tus dispositivos ESP32/ESP8266 de forma inalámbrica.</p>
+        </div>
+        
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+          <form id="ota-upload-form" class="flex flex-col sm:flex-row gap-2 items-center w-full">
+            <input type="text" id="ota-version" placeholder="Versión (ej. 1.1.0)" required class="w-full sm:w-32 bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:ring-1 focus:ring-volti-accent/50 outline-none">
+            <input type="text" id="ota-desc" placeholder="Notas de versión..." required class="w-full sm:w-48 bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:ring-1 focus:ring-volti-accent/50 outline-none">
+            
+            <div class="relative w-full sm:w-auto overflow-hidden">
+               <input type="file" id="ota-file" accept=".bin" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+               <div id="ota-file-label" class="bg-white/5 border border-white/10 text-slate-300 rounded-xl px-4 py-2 text-xs font-bold w-full text-center flex items-center justify-center gap-2 group-hover:border-white/20 transition-all cursor-pointer">
+                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                 Seleccionar .bin
+               </div>
+            </div>
+
+            <button type="submit" id="ota-submit-btn" class="w-full sm:w-auto px-5 py-2 rounded-xl bg-volti-accent text-volti-blue font-black text-xs uppercase tracking-widest hover:bg-white hover:text-volti-accent transition-all neon-glow flex justify-center mt-2 sm:mt-0">
+              Subir Nube
+            </button>
+          </form>
+          <div id="ota-progress-container" class="hidden w-full bg-white/5 h-1.5 rounded-full overflow-hidden mt-1">
+             <div id="ota-progress-bar" class="bg-volti-accent h-full w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TABS DE TABLAS + CONTENIDO -->
     <div class="glass-panel rounded-2xl overflow-hidden">
 
@@ -389,6 +425,87 @@
     editId = r[pk];
     openModal(r);
   };
+
+  // ==============================================================
+  // OTA: LÓGICA DE SUBIDA DE FIRMWARE
+  // ==============================================================
+  const otaFileInput = document.getElementById('ota-file');
+  const otaFileLabel = document.getElementById('ota-file-label');
+  const otaProgressContainer = document.getElementById('ota-progress-container');
+  const otaProgressBar = document.getElementById('ota-progress-bar');
+  const otaSubmitBtn = document.getElementById('ota-submit-btn');
+
+  if(otaFileInput) {
+    otaFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if(file) {
+        if(!file.name.endsWith('.bin')) {
+           toast('Solo archivos .bin', 'err');
+           otaFileInput.value = '';
+           otaFileLabel.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg> Seleccionar .bin`;
+           return;
+        }
+        otaFileLabel.innerHTML = `<span class="text-volti-accent truncate max-w-[120px]">${file.name}</span>`;
+      }
+    });
+
+    document.getElementById('ota-upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = otaFileInput.files[0];
+      const version = document.getElementById('ota-version').value.trim();
+      const desc = document.getElementById('ota-desc').value.trim();
+
+      if(!file || !version) return toast('Faltan datos de OTA', 'err');
+
+      // UI Subiendo
+      otaSubmitBtn.disabled = true;
+      otaSubmitBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-volti-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Subiendo...`;
+      otaProgressContainer.classList.remove('hidden');
+      otaProgressBar.style.width = '30%';
+
+      try {
+        // Convertir .bin a Base64
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+          otaProgressBar.style.width = '60%';
+          const base64Data = reader.result;
+
+          const res = await fetch('/api/ota', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
+            },
+            body: JSON.stringify({
+              version: version,
+              descripcion: desc,
+              binario_base64: base64Data
+            })
+          });
+
+          otaProgressBar.style.width = '100%';
+          const data = await res.json();
+
+          if(!res.ok) throw new Error(data.error || 'Error subiendo OTA');
+
+          toast(`Firmware v${version} listo para OTA`, 'ok');
+          document.getElementById('ota-upload-form').reset();
+          otaFileLabel.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg> Seleccionar .bin`;
+          
+          setTimeout(() => { otaProgressContainer.classList.add('hidden'); otaProgressBar.style.width = '0'; }, 1000);
+          loadSchema(); // Recargar tabla para que se vea el nuevo fw en DB
+        };
+        reader.onerror = () => { throw new Error('Error leyendo archivo local'); }
+      } catch (err) {
+        toast(err.message, 'err');
+        otaProgressContainer.classList.add('hidden');
+      } finally {
+        otaSubmitBtn.disabled = false;
+        otaSubmitBtn.innerHTML = `Subir Nube`;
+      }
+    });
+  }
 
   document.getElementById('btn-insert').addEventListener('click', () => { editId = null; openModal(); });
 

@@ -12,9 +12,11 @@
 #if defined(ESP32)
   #include <WiFi.h>
   #include <HTTPClient.h>
+  #include <HTTPUpdate.h>
 #else
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
+  #include <ESP8266httpUpdate.h>
 #endif
 #include <ArduinoJson.h>
 
@@ -22,7 +24,9 @@
 const char* ssid = "TU_WIFI_SSID";
 const char* password = "TU_WIFI_PASSWORD";
 const char* apiUrl = "https://tu-app.voltiopr.pages.dev/api/hardware"; 
+const char* apiOtaUrl = "https://tu-app.voltiopr.pages.dev/api/ota"; 
 const char* apiKey = "v0ltio_Acc3ss_2026_Secur3"; // Debe coincidir con el servidor
+const char* currentVersion = "1.0.0"; // Versión actual del firmware
 
 // --- 2. ASIGNACIÓN DE PINES ---
 #if defined(ESP32)
@@ -131,6 +135,57 @@ void sincronizarConVoltioPR() {
        }
        #endif
     }
+  }
+  http.end();
+  
+  // --- PASO C: VERIFICAR Y APLICAR ACTUALIZACIONES OTA (Over-The-Air) ---
+  verificarActualizacionOTA(client);
+}
+
+void verificarActualizacionOTA(WiFiClientSecure& client) {
+  HTTPClient http;
+  String checkUrl = String(apiOtaUrl) + "?action=check&version=" + currentVersion;
+  
+  http.begin(client, checkUrl);
+  http.addHeader("X-API-KEY", apiKey);
+  
+  int code = http.GET();
+  if (code == 200) {
+      String payload = http.getString();
+      DynamicJsonDocument doc(512);
+      deserializeJson(doc, payload);
+      
+      bool isUpdateAvailable = doc["update_available"];
+      String targetVersion = doc["latest_version"].as<String>();
+      
+      if (isUpdateAvailable) {
+          Serial.println(">>> ACTUALIZACIÓN OTA DISPONIBLE: v" + targetVersion);
+          Serial.println(">>> Iniciando descarga e instalación...");
+          
+          String downloadUrl = String(apiOtaUrl) + "?action=download";
+          
+          #if defined(ESP32)
+            t_httpUpdate_return ret = httpUpdate.update(client, downloadUrl);
+          #else
+            t_httpUpdate_return ret = ESPhttpUpdate.update(client, downloadUrl);
+          #endif
+          
+          switch (ret) {
+            case HTTP_UPDATE_FAILED:
+              #if defined(ESP32)
+                Serial.printf("OTA Falló: %s\n", httpUpdate.getLastErrorString().c_str());
+              #else
+                Serial.printf("OTA Falló: %s\n", ESPhttpUpdate.getLastErrorString().c_str());
+              #endif
+              break;
+            case HTTP_UPDATE_NO_UPDATES:
+              Serial.println("OTA: No hay actualizaciones (Cancelado)");
+              break;
+            case HTTP_UPDATE_OK:
+              Serial.println("OTA: Completado con éxito. Reiniciando...");
+              break;
+          }
+      }
   }
   http.end();
 }

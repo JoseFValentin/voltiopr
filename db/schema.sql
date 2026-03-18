@@ -42,6 +42,19 @@ CREATE TABLE user_metadata (
     FOREIGN KEY (user_id) REFERENCES usuarios(id)
 );
 
+-- 5. TABLA DE FIRMWARE OTA (Over-The-Air Updates)
+CREATE TABLE firmwares (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER NOT NULL,
+    version TEXT NOT NULL,         -- e.g., '1.1.0'
+    descripcion TEXT,              -- Registro de cambios
+    binario_base64 TEXT NOT NULL,  -- El compilado .bin en Base64
+    fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
+    activo BOOLEAN DEFAULT FALSE,  -- Solo un firmware debería estar marcado activo a la vez
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
+
 -- ==============================================================
 -- SEMILLAS (DATOS INICIALES PARA EL USUARIO ADMIN)
 -- ==============================================================
