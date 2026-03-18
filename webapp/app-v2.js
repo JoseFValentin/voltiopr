@@ -375,6 +375,7 @@ async function setupHardwareControls() {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
     });
     const config = await configRes.json();
+    console.log("Config obtenida de la API:", config);
     
     if (config.length === 0) {
         container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs italic">No hay dispositivos configurados. Ve a "Configuración" para añadir uno en la tabla iot_config.</div>`;
@@ -465,13 +466,13 @@ async function setupHardwareControls() {
           `;
           break;
         case 'DIGITAL_IN':
-          const isDigitalOn = dev.valor_actual == '1';
+          const isDigitalInOn = dev.valor_actual == '1';
           controlHtml = `
             <div class="flex items-center justify-between">
               <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre} (${dev.pin})</span>
               <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${isDigitalOn ? 'bg-volti-accent/20 text-volti-accent border border-volti-accent/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}">
-                  ${isDigitalOn ? 'ON' : 'OFF'}
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${isDigitalInOn ? 'bg-volti-accent/20 text-volti-accent border border-volti-accent/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}">
+                  ${isDigitalInOn ? 'ON' : 'OFF'}
                 </span>
               </div>
             </div>
@@ -621,7 +622,8 @@ async function setupHardwareControls() {
     setupDynamicListeners();
 
   } catch(e) {
-    container.innerHTML = `<div class="text-red-400 text-xs p-4 text-center">Error al conectar con la base de datos IoT.</div>`;
+    console.error("Error en setupHardwareControls:", e);
+    container.innerHTML = `<div class="text-red-400 text-xs p-4 text-center">Error al conectar con la base de datos IoT. Revisa la consola.</div>`;
   }
 }
 
