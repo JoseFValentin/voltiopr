@@ -110,5 +110,29 @@ No es un pin físico, sino la potencia del chip.
 
 ---
 
+## 🔘 8. BUTTON (Momentario / Pulsador)
+A diferencia de un interruptor fijo, este botón solo envía un "pulso" o señal momentánea. Ideal para timbres, claxons o disparar eventos únicos.
+
+*   **Configuración en Web**: Tipo `BUTTON`. Verás un botón de acción táctil.
+*   **Comportamiento**: Al pulsarlo, envía una acción de tipo `pulse` a la API.
+
+---
+
+## 🎚️ 9. SLIDER (Pure 0-100% Control)
+Un control deslizante directo para valores analógicos, intensidades o consignas (setpoints) sin interruptor de encendido.
+
+*   **Configuración en Web**: Tipo `SLIDER`. Deslizador neón azul.
+*   **Rango**: 0-100 para PWM o valores de usuario.
+
+---
+
+## 🎨 10. RGB (Color Picker)
+Control completo de color para tiras de LED (NeoPixel, WS2812B) o lámparas inteligentes.
+
+*   **Configuración en Web**: Tipo `RGB`. Verás un selector de color circular y un preview.
+*   **Código de Color**: Los valores se envían y reciben en formato Hexadecimal (e.g., `#0db9f2`).
+
+---
+
 > [!TIP]
 > **VoltioPR** está diseñado para ser agnóstico. Esto significa que mientras tu ESP32 pueda leer el protocolo, solo tienes que enviar el valor resultante mediante `POST /api/hardware` para verlo graficado o monitorizado en tu panel.

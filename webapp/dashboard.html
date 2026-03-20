@@ -105,13 +105,43 @@
           </div>
         </div>
 
-        <!-- Lista de Actuadores (Interruptores) -->
+        <!-- Lista de Actuadores (Interruptores Dinámicos) -->
         <div id="iot-controls-container" class="space-y-3">
           <!-- Dispositivos Dinámicos se cargarán aquí -->
-          
           <div class="text-center py-6 opacity-20 italic text-xs">
             Cargando configuración de pines...
           </div>
+        </div>
+      </div>
+
+      <!-- panel de controles fijos/demo -->
+      <div class="glass-panel rounded-xl p-3 lg:p-4 border-volti-accent/10">
+        <h2 class="text-sm font-bold flex items-center gap-2 mb-3 uppercase tracking-wider text-slate-400">
+           Acciones Rápidas del Sistema
+        </h2>
+        <div class="grid grid-cols-1 gap-3">
+           <!-- Ejemplo de Botón -->
+           <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between group hover:border-volti-accent/30 transition-all">
+              <div class="flex flex-col">
+                 <span class="text-xs font-bold text-slate-200">Reiniciar ESP32</span>
+                 <span class="text-[8px] text-slate-500 uppercase">Comando de Sistema</span>
+              </div>
+              <button class="px-3 py-1.5 bg-volti-red/10 border border-volti-red/30 text-volti-red text-[9px] font-black rounded-lg hover:bg-volti-red hover:text-white transition-all active:scale-95">
+                 EJECUTAR
+              </button>
+           </div>
+           
+           <!-- Ejemplo de Slider -->
+           <div class="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2 group hover:border-volti-accent/30 transition-all">
+              <div class="flex items-center justify-between">
+                 <div class="flex flex-col">
+                    <span class="text-xs font-bold text-slate-200">Brillo Dashboard</span>
+                    <span class="text-[8px] text-slate-500 uppercase">Ajuste de Interfaz</span>
+                 </div>
+                 <span class="text-[10px] font-mono text-volti-accent">85%</span>
+              </div>
+              <input type="range" class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-volti-accent" value="85">
+           </div>
         </div>
       </div>
 

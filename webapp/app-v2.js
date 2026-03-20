@@ -395,7 +395,7 @@ async function setupHardwareControls() {
 
     config.forEach(dev => {
       const card = document.createElement('div');
-      card.className = "p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2 hover:border-voltio/30 transition-all duration-300 group";
+      card.className = "p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2 hover:border-volti-accent/30 transition-all duration-300 group relative overflow-hidden";
       
       let controlHtml = '';
       
@@ -407,8 +407,11 @@ async function setupHardwareControls() {
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
                  <div class="flex flex-col">
-                   <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
-                   <span class="text-[8px] text-slate-500 uppercase tracking-tighter">Interruptor Digital</span>
+                   <div class="flex items-center gap-2">
+                     <div class="w-1.5 h-1.5 rounded-full ${isDigitalOn ? 'bg-volti-accent animate-pulse' : 'bg-slate-600'}"></div>
+                     <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                   </div>
+                   <span class="text-[8px] text-slate-500 uppercase tracking-tighter ml-3.5">Interruptor Digital</span>
                  </div>
                  <div class="flex items-center gap-2">
                    <span id="${dev.id}-status-text" class="text-[9px] font-black ${isDigitalOn ? 'text-volti-accent' : 'text-slate-500'} transition-all">${isDigitalOn ? 'ON' : 'OFF'}</span>
@@ -417,6 +420,22 @@ async function setupHardwareControls() {
                      <label for="${dev.id}-toggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-800 cursor-pointer"></label>
                    </div>
                  </div>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 'BUTTON':
+          controlHtml = `
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                 <div class="flex flex-col">
+                   <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                   <span class="text-[8px] text-slate-500 uppercase tracking-tighter">Pulsador Sincronizado</span>
+                 </div>
+                 <button class="iot-dynamic-button px-4 py-2 bg-volti-accent/10 border border-volti-accent/30 hover:bg-volti-accent hover:text-volti-blue text-volti-accent text-[10px] font-black rounded-lg transition-all active:scale-90 uppercase tracking-widest" data-id="${dev.id}">
+                    Pulsar
+                 </button>
               </div>
             </div>
           `;
@@ -449,12 +468,42 @@ async function setupHardwareControls() {
             </div>
           `;
           break;
+
+        case 'SLIDER':
+          controlHtml = `
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                 <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                 <span class="text-[9px] text-volti-accent font-mono"><span id="${dev.id}-val-num">${dev.valor_actual}</span>%</span>
+              </div>
+              <input type="range" class="iot-dynamic-slider w-full accent-volti-accent" min="0" max="100" value="${dev.valor_actual}" data-id="${dev.id}" />
+            </div>
+          `;
+          break;
+
+        case 'RGB':
+          controlHtml = `
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                 <div class="flex flex-col">
+                   <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                   <span class="text-[8px] text-slate-500 uppercase tracking-tighter">Iluminación Color</span>
+                 </div>
+                 <div class="w-6 h-6 rounded-full border border-white/20 shadow-lg" id="${dev.id}-color-preview" style="background-color: ${dev.valor_actual}"></div>
+              </div>
+              <div class="flex gap-2 items-center">
+                <input type="color" class="iot-dynamic-color w-full h-8 bg-transparent border-none cursor-pointer" value="${dev.valor_actual.startsWith('#') ? dev.valor_actual : '#0db9f2'}" data-id="${dev.id}" />
+              </div>
+            </div>
+          `;
+          break;
+
         case 'ANALOG_IN':
           controlHtml = `
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
                 <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
-                <span class="text-[9px] text-slate-500 bg-white/5 px-2 py-1 rounded">${dev.pin}</span>
+                <span class="text-[9px] text-slate-500 bg-white/5 px-2 py-1 rounded">PIN ${dev.pin}</span>
               </div>
               <div class="h-24 w-full">
                 <canvas id="chart-${dev.id}"></canvas>
@@ -469,10 +518,13 @@ async function setupHardwareControls() {
           const isDigitalInOn = dev.valor_actual == '1';
           controlHtml = `
             <div class="flex items-center justify-between">
-              <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre} (${dev.pin})</span>
+              <div class="flex flex-col">
+                <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
+                <span class="text-[8px] text-slate-500 uppercase tracking-tighter">Entrada de Pin ${dev.pin}</span>
+              </div>
               <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${isDigitalInOn ? 'bg-volti-accent/20 text-volti-accent border border-volti-accent/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}">
-                  ${isDigitalInOn ? 'ON' : 'OFF'}
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${isDigitalInOn ? 'bg-volti-accent/20 text-volti-accent border border-volti-accent/30 shadow-[0_0_10px_rgba(13,185,242,0.3)]' : 'bg-slate-500/10 text-slate-500 border border-slate-500/20'}">
+                  ${isDigitalInOn ? 'ACTIVO' : 'INACTIVO'}
                 </span>
               </div>
             </div>
@@ -654,6 +706,46 @@ function initPinChart(devId) {
 }
 
 function setupDynamicListeners() {
+    // Listeners para Botones (Pulsadores)
+    document.querySelectorAll('.iot-dynamic-button').forEach(el => {
+        el.addEventListener('click', async (e) => {
+            const id = e.target.dataset.id;
+            // Efecto visual de pulsado
+            e.target.classList.add('bg-volti-accent', 'text-volti-blue');
+            setTimeout(() => e.target.classList.remove('bg-volti-accent', 'text-volti-blue'), 200);
+
+            await fetch('/api/hardware', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
+                },
+                body: JSON.stringify({ id_dispositivo: id, accion: 'pulse', valor: '1' })
+            });
+        });
+    });
+
+    // Listeners para Color Pickers
+    document.querySelectorAll('.iot-dynamic-color').forEach(el => {
+        el.addEventListener('input', (e) => {
+            const id = e.target.dataset.id;
+            const preview = document.getElementById(`${id}-color-preview`);
+            if (preview) preview.style.backgroundColor = e.target.value;
+        });
+        el.addEventListener('change', async (e) => {
+            const id = e.target.dataset.id;
+            const val = e.target.value;
+            await fetch('/api/hardware', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
+                },
+                body: JSON.stringify({ id_dispositivo: id, valor: val })
+            });
+        });
+    });
+
     // Listeners para Toggles
     document.querySelectorAll('.iot-dynamic-toggle').forEach(el => {
         el.addEventListener('change', async (e) => {

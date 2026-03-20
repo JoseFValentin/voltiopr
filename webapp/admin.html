@@ -525,21 +525,24 @@
       if (isType) {
         return `<div class="space-y-1">${label}<select name="${c.name}" class="w-full bg-slate-900 text-white rounded-xl p-2 outline-none border border-white/10 text-xs">
           <option value="">-- Protocolo --</option>
-          <option value="DIGITAL_OUT" ${data?.tipo==='DIGITAL_OUT'?'selected':''}>DIGITAL_OUT</option>
-          <option value="DIGITAL_IN" ${data?.tipo==='DIGITAL_IN'?'selected':''}>DIGITAL_IN</option>
-          <option value="PWM" ${data?.tipo==='PWM'?'selected':''}>PWM</option>
-          <option value="ANALOG_IN" ${data?.tipo==='ANALOG_IN'?'selected':''}>ANALOG_IN</option>
-          <option value="DAC" ${data?.tipo==='DAC'?'selected':''}>DAC</option>
-          <option value="I2C" ${data?.tipo==='I2C'?'selected':''}>I2C</option>
-          <option value="SPI" ${data?.tipo==='SPI'?'selected':''}>SPI</option>
-          <option value="SERIAL" ${data?.tipo==='SERIAL'?'selected':''}>SERIAL</option>
-          <option value="ONEWIRE" ${data?.tipo==='ONEWIRE'?'selected':''}>ONEWIRE</option>
-          <option value="CAN" ${data?.tipo==='CAN'?'selected':''}>CAN</option>
-          <option value="I2S" ${data?.tipo==='I2S'?'selected':''}>I2S</option>
-          <option value="TOUCH" ${data?.tipo==='TOUCH'?'selected':''}>TOUCH</option>
-          <option value="HALL" ${data?.tipo==='HALL'?'selected':''}>HALL</option>
-          <option value="WIFI" ${data?.tipo==='WIFI'?'selected':''}>WIFI</option>
-          <option value="PCNT" ${data?.tipo==='PCNT'?'selected':''}>PCNT</option>
+          <option value="DIGITAL_OUT" ${data?.tipo==='DIGITAL_OUT'?'selected':''}>DIGITAL_OUT (Toggle)</option>
+          <option value="DIGITAL_IN" ${data?.tipo==='DIGITAL_IN'?'selected':''}>DIGITAL_IN (Status)</option>
+          <option value="PWM" ${data?.tipo==='PWM'?'selected':''}>PWM (Toggle + Dimmer)</option>
+          <option value="BUTTON" ${data?.tipo==='BUTTON'?'selected':''}>BUTTON (Momentary)</option>
+          <option value="SLIDER" ${data?.tipo==='SLIDER'?'selected':''}>SLIDER (Pure 0-100%)</option>
+          <option value="RGB" ${data?.tipo==='RGB'?'selected':''}>RGB (Color Picker)</option>
+          <option value="ANALOG_IN" ${data?.tipo==='ANALOG_IN'?'selected':''}>ANALOG_IN (Graph)</option>
+          <option value="DAC" ${data?.tipo==='DAC'?'selected':''}>DAC (Slider 0-255)</option>
+          <option value="I2C" ${data?.tipo==='I2C'?'selected':''}>I2C Bus</option>
+          <option value="SPI" ${data?.tipo==='SPI'?'selected':''}>SPI Bus</option>
+          <option value="SERIAL" ${data?.tipo==='SERIAL'?'selected':''}>SERIAL / UART</option>
+          <option value="ONEWIRE" ${data?.tipo==='ONEWIRE'?'selected':''}>ONEWIRE (DS18B20)</option>
+          <option value="CAN" ${data?.tipo==='CAN'?'selected':''}>CAN Bus</option>
+          <option value="I2S" ${data?.tipo==='I2S'?'selected':''}>I2S Audio</option>
+          <option value="TOUCH" ${data?.tipo==='TOUCH'?'selected':''}>TOUCH Sensor</option>
+          <option value="HALL" ${data?.tipo==='HALL'?'selected':''}>HALL Effect</option>
+          <option value="WIFI" ${data?.tipo==='WIFI'?'selected':''}>WIFI Signal</option>
+          <option value="PCNT" ${data?.tipo==='PCNT'?'selected':''}>PCNT (Counter)</option>
         </select></div>`;
       }
 
