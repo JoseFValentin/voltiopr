@@ -68,7 +68,7 @@ export async function onRequestGet({ request, env }) {
     const userId = getUserFromToken(request);
     if (!userId) return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401 });
 
-    const { results } = await env.DB.prepare('SELECT id, version, descripcion, fecha_subida, activo FROM firmwares ORDER BY fecha_subida DESC').all();
+    const { results } = await env.DB.prepare('SELECT id, version, descripcion, fecha_subida, activo FROM firmwares WHERE usuario_id = ? ORDER BY fecha_subida DESC').bind(userId).all();
     return new Response(JSON.stringify(results), { status: 200, headers: { 'Content-Type': 'application/json' }});
 
   } catch(err) {
@@ -91,8 +91,8 @@ export async function onRequestPost({ request, env }) {
       return new Response(JSON.stringify({ error: "Faltan datos obligatorios" }), { status: 400 });
     }
 
-    // Desactivar todos los previos
-    await env.DB.prepare('UPDATE firmwares SET activo = 0').run();
+    // Desactivar solo los previos de ESTE usuario
+    await env.DB.prepare('UPDATE firmwares SET activo = 0 WHERE usuario_id = ?').bind(userId).run();
 
     // Insertar el nuevo y marcarlo activo
     const stmt = env.DB.prepare(`
@@ -122,7 +122,7 @@ export async function onRequestDelete({ request, env }) {
   
       if (!id) return new Response(JSON.stringify({ error: "ID no proporcionado" }), { status: 400 });
   
-      await env.DB.prepare('DELETE FROM firmwares WHERE id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM firmwares WHERE id = ? AND usuario_id = ?').bind(id, userId).run();
   
       return new Response(JSON.stringify({ success: true, mensaje: "Firmware eliminado del historial" }), { status: 200 });
     } catch (err) {

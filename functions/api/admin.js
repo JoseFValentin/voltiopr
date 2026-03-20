@@ -1,10 +1,4 @@
-// ==============================================================
-// BACKEND: API DE ADMINISTRACIÓN DE BASE DE DATOS
-// ==============================================================
-// Nota para no programadores:
-// Este archivo es el "portero del almacén". Permite a las páginas
-// de administración ver, agregar y borrar información de todas
-// las tablas de nuestra base de datos en la nube.
+import { getUserFromToken } from './utils.js';
 
 const CORS_HEADERS = {
   'Content-Type': 'application/json',
@@ -12,26 +6,43 @@ const CORS_HEADERS = {
 };
 
 // Tablas permitidas (seguridad: solo estas se pueden consultar/modificar)
-const ALLOWED_TABLES = ['usuarios', 'dispositivos', 'iot_config', 'user_metadata'];
-
-// Columnas que NO se deben mostrar en el admin (seguridad)
-const HIDDEN_COLS = {};
+const ALLOWED_TABLES = ['usuarios', 'dispositivos', 'iot_config', 'user_metadata', 'firmwares'];
 
 // ==============================================================
 // GET: Obtener registros de una tabla
-// Ejemplo: GET /api/admin?table=usuarios
 // ==============================================================
 export async function onRequestGet({ request, env }) {
   try {
+    const userId = getUserFromToken(request);
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
+    }
+
+    // 1. Verificar si el usuario es SUPER ADMIN
+    const userRow = await env.DB.prepare('SELECT es_admin FROM usuarios WHERE id = ?').bind(userId).first();
+    const isSuperAdmin = userRow?.es_admin === 1;
+
     const url = new URL(request.url);
     const table = url.searchParams.get('table');
 
-    // Sin parámetro de tabla: devolver schema completo (lista de tablas + recuento)
+    // Sin parámetro de tabla: devolver schema filtrado por pertenencia
     if (!table) {
       const tablesInfo = [];
       for (const t of ALLOWED_TABLES) {
+        // Privacidad: Solo Admin ve 'usuarios' completo o la tabla de otros
+        if (!isSuperAdmin && t === 'usuarios') continue;
+
         try {
-          const count = await env.DB.prepare(`SELECT COUNT(*) as c FROM ${t}`).first();
+          // Contar solo lo que pertenece al usuario (si la tabla tiene columna de dueño)
+          let countQuery = `SELECT COUNT(*) as c FROM ${t}`;
+          if (!isSuperAdmin) {
+            if (t === 'iot_config') countQuery += ` WHERE usuario_id = ${userId}`;
+            else if (t === 'user_metadata') countQuery += ` WHERE user_id = ${userId}`;
+            else if (t === 'firmwares') countQuery += ` WHERE usuario_id = ${userId}`;
+            else if (t === 'dispositivos') countQuery += ` WHERE usuario_id = ${userId}`;
+          }
+
+          const count = await env.DB.prepare(countQuery).first();
           const cols  = await env.DB.prepare(`PRAGMA table_info(${t})`).all();
           tablesInfo.push({
             name: t,
@@ -39,7 +50,7 @@ export async function onRequestGet({ request, env }) {
             columns: cols.results.map(c => ({ name: c.name, type: c.type, pk: c.pk === 1 }))
           });
         } catch (_) {
-          tablesInfo.push({ name: t, rows: 0, columns: [], error: 'Tabla no encontrada' });
+          tablesInfo.push({ name: t, rows: 0, columns: [], error: 'Tabla no accesible' });
         }
       }
       return new Response(JSON.stringify(tablesInfo), { status: 200, headers: CORS_HEADERS });
@@ -50,29 +61,64 @@ export async function onRequestGet({ request, env }) {
       return new Response(JSON.stringify({ error: 'Tabla no permitida' }), { status: 403, headers: CORS_HEADERS });
     }
 
-    const { results } = await env.DB.prepare(`SELECT * FROM ${table} ORDER BY rowid DESC LIMIT 500`).all();
+    // 2. Construir Query Filtrada por Privacidad
+    let query = `SELECT * FROM ${table}`;
+    const params = [];
+
+    if (!isSuperAdmin) {
+        if (table === 'iot_config' || table === 'firmwares' || table === 'dispositivos') {
+            query += ` WHERE usuario_id = ?`;
+            params.push(userId);
+        } else if (table === 'user_metadata') {
+            query += ` WHERE user_id = ?`;
+            params.push(userId);
+        } else if (table === 'usuarios') {
+            query += ` WHERE id = ?`; // Solo se ve a sí mismo
+            params.push(userId);
+        }
+    }
+
+    query += ` ORDER BY rowid DESC LIMIT 500`;
+    
+    const { results } = await env.DB.prepare(query).bind(...params).all();
     return new Response(JSON.stringify(results), { status: 200, headers: CORS_HEADERS });
 
   } catch (err) {
     console.error('Admin GET error:', err);
-    return new Response(JSON.stringify({ error: 'Error al leer la base de datos: ' + err.message }), { status: 500, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({ error: 'Error de base de datos: ' + err.message }), { status: 500, headers: CORS_HEADERS });
   }
 }
 
 // ==============================================================
-// POST: Insertar un registro nuevo en una tabla
-// Body: { table: "usuarios", data: { username: "...", email: "...", ... } }
+// POST: Insertar un registro nuevo
 // ==============================================================
 export async function onRequestPost({ request, env }) {
   try {
+    const userId = getUserFromToken(request);
+    if (!userId) return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
+
+    const userRow = await env.DB.prepare('SELECT es_admin FROM usuarios WHERE id = ?').bind(userId).first();
+    const isSuperAdmin = userRow?.es_admin === 1;
+
     const body = await request.json();
     const { table, data } = body;
 
     if (!table || !data) {
-      return new Response(JSON.stringify({ error: 'Faltan parámetros: table y data son obligatorios' }), { status: 400, headers: CORS_HEADERS });
+      return new Response(JSON.stringify({ error: 'Faltan parámetros' }), { status: 400, headers: CORS_HEADERS });
     }
     if (!ALLOWED_TABLES.includes(table)) {
       return new Response(JSON.stringify({ error: 'Tabla no permitida' }), { status: 403, headers: CORS_HEADERS });
+    }
+
+    // Forzar el dueño si no es admin
+    if (!isSuperAdmin) {
+        if (table === 'iot_config' || table === 'firmwares' || table === 'dispositivos') {
+            data.usuario_id = userId;
+        } else if (table === 'user_metadata') {
+            data.user_id = userId;
+        } else if (table === 'usuarios') {
+            return new Response(JSON.stringify({ error: 'No puedes crear usuarios' }), { status: 403, headers: CORS_HEADERS });
+        }
     }
 
     const cols   = Object.keys(data).join(', ');
@@ -81,56 +127,96 @@ export async function onRequestPost({ request, env }) {
 
     await env.DB.prepare(`INSERT INTO ${table} (${cols}) VALUES (${placeholders})`).bind(...values).run();
 
-    return new Response(JSON.stringify({ success: true, mensaje: `Registro insertado en "${table}"` }), { status: 201, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({ success: true, mensaje: `Registro insertado` }), { status: 201, headers: CORS_HEADERS });
 
   } catch (err) {
-    console.error('Admin POST error:', err);
     return new Response(JSON.stringify({ error: 'Error al insertar: ' + err.message }), { status: 500, headers: CORS_HEADERS });
   }
 }
 
 // ==============================================================
-// DELETE: Eliminar un registro por rowid o columna PK
-// Ejemplo: DELETE /api/admin?table=usuarios&id=3&pk=id
+// DELETE: Eliminar un registro
 // ==============================================================
 export async function onRequestDelete({ request, env }) {
   try {
+    const userId = getUserFromToken(request);
+    if (!userId) return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
+
+    const userRow = await env.DB.prepare('SELECT es_admin FROM usuarios WHERE id = ?').bind(userId).first();
+    const isSuperAdmin = userRow?.es_admin === 1;
+
     const url   = new URL(request.url);
     const table = url.searchParams.get('table');
     const id    = url.searchParams.get('id');
-    const pk    = url.searchParams.get('pk') || 'id'; // columna PK por defecto
+    const pk    = url.searchParams.get('pk') || 'id';
 
     if (!table || !id) {
-      return new Response(JSON.stringify({ error: 'Parámetros faltantes: table e id son obligatorios' }), { status: 400, headers: CORS_HEADERS });
+      return new Response(JSON.stringify({ error: 'Parámetros faltantes' }), { status: 400, headers: CORS_HEADERS });
     }
     if (!ALLOWED_TABLES.includes(table)) {
       return new Response(JSON.stringify({ error: 'Tabla no permitida' }), { status: 403, headers: CORS_HEADERS });
     }
 
+    // Validación de propiedad
+    if (!isSuperAdmin) {
+        let ownerCol = 'usuario_id';
+        if (table === 'user_metadata') ownerCol = 'user_id';
+        if (table === 'usuarios') {
+            if (id != userId) return new Response(JSON.stringify({ error: 'No puedes borrar otros usuarios' }), { status: 403, headers: CORS_HEADERS });
+            ownerCol = 'id';
+        }
+
+        const check = await env.DB.prepare(`SELECT * FROM ${table} WHERE ${pk} = ? AND ${ownerCol} = ?`).bind(id, userId).first();
+        if (!check) return new Response(JSON.stringify({ error: 'Registro no encontrado o no te pertenece' }), { status: 404, headers: CORS_HEADERS });
+    }
+
     await env.DB.prepare(`DELETE FROM ${table} WHERE ${pk} = ?`).bind(id).run();
 
-    return new Response(JSON.stringify({ success: true, mensaje: `Registro eliminado de "${table}"` }), { status: 200, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({ success: true, mensaje: `Registro eliminado` }), { status: 200, headers: CORS_HEADERS });
 
   } catch (err) {
-    console.error('Admin DELETE error:', err);
     return new Response(JSON.stringify({ error: 'Error al eliminar: ' + err.message }), { status: 500, headers: CORS_HEADERS });
   }
 }
 
 // ==============================================================
 // PUT: Actualizar un registro existente
-// Body: { table: "iot_config", pk: "id", id: "led-1", data: { ... } }
 // ==============================================================
 export async function onRequestPut({ request, env }) {
   try {
+    const userId = getUserFromToken(request);
+    if (!userId) return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
+
+    const userRow = await env.DB.prepare('SELECT es_admin FROM usuarios WHERE id = ?').bind(userId).first();
+    const isSuperAdmin = userRow?.es_admin === 1;
+
     const body = await request.json();
     const { table, pk, id, data } = body;
 
     if (!table || !id || !data) {
-      return new Response(JSON.stringify({ error: 'Faltan parámetros: table, id y data son obligatorios' }), { status: 400, headers: CORS_HEADERS });
+      return new Response(JSON.stringify({ error: 'Faltan parámetros' }), { status: 400, headers: CORS_HEADERS });
     }
     if (!ALLOWED_TABLES.includes(table)) {
       return new Response(JSON.stringify({ error: 'Tabla no permitida' }), { status: 403, headers: CORS_HEADERS });
+    }
+
+    // Validación de propiedad
+    if (!isSuperAdmin) {
+        let ownerCol = 'usuario_id';
+        if (table === 'user_metadata') ownerCol = 'user_id';
+        if (table === 'usuarios') {
+            if (id != userId) return new Response(JSON.stringify({ error: 'No puedes editar otros usuarios' }), { status: 403, headers: CORS_HEADERS });
+            ownerCol = 'id';
+        }
+
+        const check = await env.DB.prepare(`SELECT * FROM ${table} WHERE ${pk || 'id'} = ? AND ${ownerCol} = ?`).bind(id, userId).first();
+        if (!check) return new Response(JSON.stringify({ error: 'Registro no encontrado o no te pertenece' }), { status: 404, headers: CORS_HEADERS });
+        
+        // Evitar que el usuario cambie el dueño o su propio estatus de admin
+        delete data.usuario_id;
+        delete data.user_id;
+        delete data.es_admin;
+        if (table === 'usuarios') delete data.id;
     }
 
     const updates = Object.keys(data).map(col => `${col} = ?`).join(', ');
@@ -138,10 +224,9 @@ export async function onRequestPut({ request, env }) {
 
     await env.DB.prepare(`UPDATE ${table} SET ${updates} WHERE ${pk || 'id'} = ?`).bind(...values).run();
 
-    return new Response(JSON.stringify({ success: true, mensaje: `Registro actualizado en "${table}"` }), { status: 200, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({ success: true, mensaje: `Registro actualizado` }), { status: 200, headers: CORS_HEADERS });
 
   } catch (err) {
-    console.error('Admin PUT error:', err);
     return new Response(JSON.stringify({ error: 'Error al actualizar: ' + err.message }), { status: 500, headers: CORS_HEADERS });
   }
 }

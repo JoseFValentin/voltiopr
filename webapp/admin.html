@@ -309,7 +309,9 @@
 
   async function loadSchema() {
     try {
-      const res = await fetch('/api/admin');
+      const res = await fetch('/api/admin', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
+      });
       if (!res.ok) throw new Error(`API Error: ${res.status}`);
       allTables = await res.json();
       renderCards();
@@ -365,7 +367,9 @@
     const area = document.getElementById('table-area');
     area.innerHTML = `<div class="flex flex-col items-center justify-center h-48 opacity-20"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-volti-accent mb-2"></div><span class="text-[10px] uppercase">Leyendo ${currentTable}...</span></div>`;
     try {
-      const res = await fetch('/api/admin?table=' + currentTable);
+      const res = await fetch('/api/admin?table=' + currentTable, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
+      });
       const data = await res.json();
       if (!Array.isArray(data)) throw new Error(data.error || 'Inválido');
       currentData = data;
@@ -412,7 +416,10 @@
     if(!confirm('¿Borrar registro?')) return;
     const pk = (currentCols.find(c => c.pk) || currentCols[0] || {name:'id'}).name;
     try {
-      const r = await fetch(`/api/admin?table=${currentTable}&id=${encodeURIComponent(id)}&pk=${pk}`, {method:'DELETE'});
+      const r = await fetch(`/api/admin?table=${currentTable}&id=${encodeURIComponent(id)}&pk=${pk}`, {
+        method:'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
+      });
       if(!r.ok) throw new Error('Error delete');
       toast('Eliminado');
       loadTableData();
@@ -570,13 +577,17 @@
     try {
       const r = await fetch('/api/admin', {
         method: isEdit ? 'PUT' : 'POST',
-        headers: {'Content-Type':'application/json'},
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}`
+        },
         body: JSON.stringify({ table: currentTable, data, pk: isEdit ? pk : undefined, id: isEdit ? editId : undefined })
       });
       if(!r.ok) throw new Error('Error al guardar');
       toast(isEdit ? 'Actualizado' : 'Insertado');
       showModal(false);
       loadTableData();
+      loadSchema(); // Recargar contadores de las tarjetas
     } catch(e) { toast(e.message, 'err'); }
   });
 
