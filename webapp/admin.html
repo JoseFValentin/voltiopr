@@ -142,7 +142,7 @@
         <!-- INFO USUARIO -->
         <div class="flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
           <div class="w-1.5 h-1.5 rounded-full bg-volti-accent animate-pulse"></div>
-          <span id="user-display-name" class="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-300">Cargando...</span>
+          <span id="user-display-name" class="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-300">User: Cargando...</span>
         </div>
 
         <!-- BOTÓN TEMA -->
@@ -394,14 +394,30 @@
       area.innerHTML = `<div class="p-10 text-center opacity-30 text-[10px] uppercase tracking-widest font-bold">Sin datos</div>`;
       return;
     }
-    const headers = Object.keys(rows[0]);
+    
+    // Filtrar columnas para no mostrar IDs de usuario si tenemos el nombre
+    let headers = Object.keys(rows[0]);
+    const hasName = headers.includes('usuario_nombre');
+    if (hasName) {
+      headers = headers.filter(h => h !== 'usuario_id' && h !== 'user_id');
+    }
+
     area.innerHTML = `
       <table class="data-table">
-        <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}<th class="text-center">Acción</th></tr></thead>
+        <thead>
+          <tr>
+            ${headers.map(h => `<th>${h === 'usuario_nombre' ? 'Usuario' : h}</th>`).join('')}
+            <th class="text-center">Acción</th>
+          </tr>
+        </thead>
         <tbody>
           ${rows.map((row, idx) => `
             <tr>
-              ${headers.map(h => `<td class="${h === pk ? 'pk-col':''}" title="${row[h]}">${row[h] ?? 'null'}</td>`).join('')}
+              ${headers.map(h => {
+                const val = row[h] ?? 'null';
+                const isPk = h === pk;
+                return `<td class="${isPk ? 'pk-col':''}" title="${val}">${val}</td>`;
+              }).join('')}
               <td class="text-center">
                 <button onclick="editRow(${idx})" class="p-1.5 text-volti-accent/40 hover:text-volti-accent transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
                 <button onclick="deleteRow('${row[pk]}')" class="p-1.5 text-red-400/30 hover:text-red-400 transition ml-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
@@ -522,7 +538,22 @@
 
   document.getElementById('btn-insert').addEventListener('click', () => { editId = null; openModal(); });
 
-  function openModal(data = null) {
+  let allUsers = [];
+
+  async function fetchUsersOnce() {
+    if (allUsers.length > 0) return;
+    try {
+      const resp = await fetch('/api/admin?table=usuarios', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('voltiopr_session')}` }
+      });
+      if (resp.ok) allUsers = await resp.json();
+    } catch (_) {}
+  }
+
+  async function openModal(data = null) {
+    const isAdminStatus = localStorage.getItem('voltiopr_admin') === 'true';
+    if (isAdminStatus) await fetchUsersOnce();
+
     const fields = document.getElementById('insert-fields');
     document.getElementById('modal-title').textContent = data ? 'Editar' : 'Insertar';
     const editableCols = currentCols.filter(c => !(c.pk && c.type === 'INTEGER'));
@@ -530,36 +561,43 @@
     fields.innerHTML = editableCols.map(c => {
       const isDate = c.type?.toLowerCase().includes('datetime');
       const isType = currentTable === 'iot_config' && c.name === 'tipo';
+      const isUserCol = c.name === 'usuario_id' || c.name === 'user_id';
+
+      // Si no es admin y es columna de usuario, la ocultamos (auto-asignación en server)
+      if (isUserCol && !isAdminStatus) {
+        return `<input type="hidden" name="${c.name}" value="${data ? data[c.name] : ''}" />`;
+      }
+
+      const labelTxt = isUserCol ? 'Dueño del Registro' : (isType ? 'Protocolo Hardware' : c.name);
       const label = `<label class="text-[10px] font-bold text-slate-500 uppercase flex justify-between mb-1">
-        <span>${c.name} ${c.pk ? '<span class="text-volti-accent">(PK)</span>':''}</span>
+        <span>${labelTxt} ${c.pk ? '<span class="text-volti-accent">(PK)</span>':''}</span>
         ${isDate ? '<button type="button" class="text-volti-accent" onclick="this.parentElement.nextElementSibling.value=new Date(new Date().getTime() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)">Ahora</button>':''}
       </label>`;
 
       if (isType) {
-        return `<div class="space-y-1">${label}<select name="${c.name}" class="w-full bg-slate-900 text-white rounded-xl p-2 outline-none border border-white/10 text-xs">
-          <option value="">-- Protocolo --</option>
+        return `<div class="space-y-1">${label}<select name="${c.name}" class="w-full bg-slate-900 text-white rounded-xl p-2 outline-none border border-white/10 text-xs text-volti-accent font-bold">
+          <option value="">-- Seleccionar --</option>
           <option value="DIGITAL_OUT" ${data?.tipo==='DIGITAL_OUT'?'selected':''}>DIGITAL_OUT (Toggle)</option>
-          <option value="DIGITAL_IN" ${data?.tipo==='DIGITAL_IN'?'selected':''}>DIGITAL_IN (Status)</option>
           <option value="PWM" ${data?.tipo==='PWM'?'selected':''}>PWM (Toggle + Dimmer)</option>
-          <option value="BUTTON" ${data?.tipo==='BUTTON'?'selected':''}>BUTTON (Momentary)</option>
-          <option value="SLIDER" ${data?.tipo==='SLIDER'?'selected':''}>SLIDER (Pure 0-100%)</option>
-          <option value="RGB" ${data?.tipo==='RGB'?'selected':''}>RGB (Color Picker)</option>
-          <option value="ANALOG_IN" ${data?.tipo==='ANALOG_IN'?'selected':''}>ANALOG_IN (Graph)</option>
-          <option value="DAC" ${data?.tipo==='DAC'?'selected':''}>DAC (Slider 0-255)</option>
-          <option value="I2C" ${data?.tipo==='I2C'?'selected':''}>I2C Bus</option>
-          <option value="SPI" ${data?.tipo==='SPI'?'selected':''}>SPI Bus</option>
-          <option value="SERIAL" ${data?.tipo==='SERIAL'?'selected':''}>SERIAL / UART</option>
-          <option value="ONEWIRE" ${data?.tipo==='ONEWIRE'?'selected':''}>ONEWIRE (DS18B20)</option>
-          <option value="CAN" ${data?.tipo==='CAN'?'selected':''}>CAN Bus</option>
-          <option value="I2S" ${data?.tipo==='I2S'?'selected':''}>I2S Audio</option>
-          <option value="TOUCH" ${data?.tipo==='TOUCH'?'selected':''}>TOUCH Sensor</option>
-          <option value="HALL" ${data?.tipo==='HALL'?'selected':''}>HALL Effect</option>
+          <option value="BUTTON" ${data?.tipo==='BUTTON'?'selected':''}>BUTTON (Pulsador)</option>
+          <option value="SLIDER" ${data?.tipo==='SLIDER'?'selected':''}>SLIDER (0-100%)</option>
+          <option value="ANALOG_IN" ${data?.tipo==='ANALOG_IN'?'selected':''}>ANALOG_IN (Gráfica)</option>
           <option value="WIFI" ${data?.tipo==='WIFI'?'selected':''}>WIFI Signal</option>
-          <option value="PCNT" ${data?.tipo==='PCNT'?'selected':''}>PCNT (Counter)</option>
+          <option value="I2C" ${data?.tipo==='I2C'?'selected':''}>I2C / SPI Bus</option>
+          <option value="ONEWIRE" ${data?.tipo==='ONEWIRE'?'selected':''}>ONEWIRE / SERIAL</option>
+          <option value="TOUCH" ${data?.tipo==='TOUCH'?'selected':''}>TOUCH / HALL</option>
         </select></div>`;
       }
 
-      return `<div class="space-y-1">${label}<input name="${c.name}" type="${isDate?'datetime-local':(c.type==='INTEGER'?'number':'text')}" value="${data?data[c.name] : (currentTable==='iot_config'&&c.name==='usuario_id'?'2':'')}" ${data&&c.pk?'disabled':''} class="w-full bg-white/5 text-white rounded-xl p-2 outline-none border border-white/10 text-xs ${data&&c.pk?'opacity-30':''}" /></div>`;
+      if (isUserCol && isAdminStatus) {
+        return `<div class="space-y-1">${label}<select name="${c.name}" class="w-full bg-slate-900 text-white rounded-xl p-2 outline-none border border-white/10 text-xs text-volti-accent font-bold">
+          <option value="">-- Seleccionar Usuario --</option>
+          ${allUsers.map(u => `<option value="${u.id}" ${ (data ? data[c.name] : '') == u.id ? 'selected':'' }>${u.username} (${u.email})</option>`).join('')}
+        </select></div>`;
+      }
+
+      const val = data ? data[c.name] : '';
+      return `<div class="space-y-1">${label}<input name="${c.name}" type="${isDate?'datetime-local':(c.type==='INTEGER'?'number':'text')}" value="${val}" ${data&&c.pk?'disabled':''} class="w-full bg-white/5 text-white rounded-xl p-2 outline-none border border-white/10 text-xs ${data&&c.pk?'opacity-30':''}" /></div>`;
     }).join('');
 
     if(!data) {
@@ -567,9 +605,11 @@
         const now = new Date();
         const local = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
         fields.querySelectorAll('input[type="datetime-local"]').forEach(i => { if(!i.value) i.value=local; });
+        showModal(true);
       }, 50);
+    } else {
+      showModal(true);
     }
-    showModal(true);
   }
 
   document.getElementById('modal-close').addEventListener('click', () => showModal(false));

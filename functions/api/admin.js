@@ -69,18 +69,24 @@ export async function onRequestGet({ request, env }) {
     const hasUsuarioId = tableCols.results.some(c => c.name === 'usuario_id');
     const hasUserId    = tableCols.results.some(c => c.name === 'user_id');
 
-    let query = `SELECT * FROM ${table}`;
+    let query = `SELECT t.* FROM ${table} t`;
+    if (hasUsuarioId) {
+        query = `SELECT t.*, u.username as usuario_nombre FROM ${table} t LEFT JOIN usuarios u ON t.usuario_id = u.id`;
+    } else if (hasUserId && table !== 'usuarios') {
+        query = `SELECT t.*, u.username as usuario_nombre FROM ${table} t LEFT JOIN usuarios u ON t.user_id = u.id`;
+    }
+
     const params = [];
 
     if (!isSuperAdmin) {
         if (hasUsuarioId) {
-            query += ` WHERE usuario_id = ?`;
+            query += ` WHERE t.usuario_id = ?`;
             params.push(userId);
         } else if (hasUserId) {
-            query += ` WHERE user_id = ?`;
+            query += ` WHERE t.user_id = ?`;
             params.push(userId);
         } else if (table === 'usuarios') {
-            query += ` WHERE id = ?`; // Solo se ve a sí mismo
+            query += ` WHERE t.id = ?`; // Solo se ve a sí mismo
             params.push(userId);
         }
     }

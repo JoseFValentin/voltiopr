@@ -214,6 +214,7 @@ function setupLogin() {
       showToast(`¡Bienvenido de vuelta, ${data.usuario}!`, 'success');
       localStorage.setItem('voltiopr_session', data.token);
       localStorage.setItem('voltiopr_user', data.usuario);
+      localStorage.setItem('voltiopr_admin', data.es_admin ? 'true' : 'false');
       setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
     } catch (err) {
       showToast("Error de conexión. Inténtalo de nuevo.", "error");
