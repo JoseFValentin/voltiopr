@@ -142,9 +142,20 @@ function initPasswordToggles() {
 // 1. SEGURIDAD Y SESIÓN
 // ==============================================================
 function checkUserSession() {
-  if (!localStorage.getItem('voltiopr_session')) {
+  const session = localStorage.getItem('voltiopr_session');
+  const user = localStorage.getItem('voltiopr_user');
+
+  if (!session) {
     window.location.href = 'index.html';
+    return;
   }
+
+  // Mostrar nombre de usuario en el header si el elemento existe
+  const display = document.getElementById('user-display-name');
+  if (display && user) {
+    display.textContent = user;
+  }
+
   const btnLogout = document.getElementById('btn-logout');
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {

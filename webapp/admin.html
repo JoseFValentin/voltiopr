@@ -139,6 +139,12 @@
 
       <!-- BOTONES ACCIÓN -->
       <div class="flex items-center gap-2">
+        <!-- INFO USUARIO -->
+        <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 mr-2">
+          <div class="w-1.5 h-1.5 rounded-full bg-volti-accent animate-pulse"></div>
+          <span id="user-display-name" class="text-[10px] font-bold uppercase tracking-widest text-slate-300">Usuario</span>
+        </div>
+
         <!-- BOTÓN TEMA -->
         <button id="btn-theme-toggle" class="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-slate-400 hover:text-volti-accent" title="Cambiar Tema">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
