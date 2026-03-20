@@ -91,7 +91,7 @@ export async function onRequestGet({ request, env }) {
         }
     }
 
-    query += ` ORDER BY rowid DESC LIMIT 500`;
+    query += ` ORDER BY t.rowid DESC LIMIT 500`;
     
     const { results } = await env.DB.prepare(query).bind(...params).all();
     return new Response(JSON.stringify(results), { status: 200, headers: CORS_HEADERS });
