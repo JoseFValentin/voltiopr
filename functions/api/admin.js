@@ -33,17 +33,20 @@ export async function onRequestGet({ request, env }) {
         if (!isSuperAdmin && t === 'usuarios') continue;
 
         try {
+          // 1. Obtener la estructura de la tabla para ver si tiene columna de dueño
+          const cols  = await env.DB.prepare(`PRAGMA table_info(${t})`).all();
+          const hasUsuarioId = cols.results.some(c => c.name === 'usuario_id');
+          const hasUserId = cols.results.some(c => c.name === 'user_id');
+
           // Contar solo lo que pertenece al usuario (si la tabla tiene columna de dueño)
           let countQuery = `SELECT COUNT(*) as c FROM ${t}`;
           if (!isSuperAdmin) {
-            if (t === 'iot_config') countQuery += ` WHERE usuario_id = ${userId}`;
-            else if (t === 'user_metadata') countQuery += ` WHERE user_id = ${userId}`;
-            else if (t === 'firmwares') countQuery += ` WHERE usuario_id = ${userId}`;
-            else if (t === 'dispositivos') countQuery += ` WHERE usuario_id = ${userId}`;
+            if (hasUsuarioId) countQuery += ` WHERE usuario_id = ${userId}`;
+            else if (hasUserId) countQuery += ` WHERE user_id = ${userId}`;
           }
 
           const count = await env.DB.prepare(countQuery).first();
-          const cols  = await env.DB.prepare(`PRAGMA table_info(${t})`).all();
+          
           tablesInfo.push({
             name: t,
             rows: count?.c ?? 0,
@@ -61,15 +64,19 @@ export async function onRequestGet({ request, env }) {
       return new Response(JSON.stringify({ error: 'Tabla no permitida' }), { status: 403, headers: CORS_HEADERS });
     }
 
-    // 2. Construir Query Filtrada por Privacidad
+    // 2. Construir Query Filtrada por Privacidad (Verificar Schema en cada petición)
+    const tableCols = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+    const hasUsuarioId = tableCols.results.some(c => c.name === 'usuario_id');
+    const hasUserId    = tableCols.results.some(c => c.name === 'user_id');
+
     let query = `SELECT * FROM ${table}`;
     const params = [];
 
     if (!isSuperAdmin) {
-        if (table === 'iot_config' || table === 'firmwares' || table === 'dispositivos') {
+        if (hasUsuarioId) {
             query += ` WHERE usuario_id = ?`;
             params.push(userId);
-        } else if (table === 'user_metadata') {
+        } else if (hasUserId) {
             query += ` WHERE user_id = ?`;
             params.push(userId);
         } else if (table === 'usuarios') {
@@ -110,15 +117,15 @@ export async function onRequestPost({ request, env }) {
       return new Response(JSON.stringify({ error: 'Tabla no permitida' }), { status: 403, headers: CORS_HEADERS });
     }
 
-    // Forzar el dueño si no es admin
+    // Forzar el dueño si no es admin y la tabla lo soporta
     if (!isSuperAdmin) {
-        if (table === 'iot_config' || table === 'firmwares' || table === 'dispositivos') {
-            data.usuario_id = userId;
-        } else if (table === 'user_metadata') {
-            data.user_id = userId;
-        } else if (table === 'usuarios') {
-            return new Response(JSON.stringify({ error: 'No puedes crear usuarios' }), { status: 403, headers: CORS_HEADERS });
-        }
+        const tableCols = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+        const hasUsuarioId = tableCols.results.some(c => c.name === 'usuario_id');
+        const hasUserId    = tableCols.results.some(c => c.name === 'user_id');
+
+        if (hasUsuarioId) data.usuario_id = userId;
+        else if (hasUserId) data.user_id = userId;
+        else if (table === 'usuarios') return new Response(JSON.stringify({ error: 'No puedes crear usuarios' }), { status: 403, headers: CORS_HEADERS });
     }
 
     const cols   = Object.keys(data).join(', ');
@@ -159,15 +166,23 @@ export async function onRequestDelete({ request, env }) {
 
     // Validación de propiedad
     if (!isSuperAdmin) {
-        let ownerCol = 'usuario_id';
-        if (table === 'user_metadata') ownerCol = 'user_id';
+        const tableCols = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+        const hasUsuarioId = tableCols.results.some(c => c.name === 'usuario_id');
+        const hasUserId    = tableCols.results.some(c => c.name === 'user_id');
+
+        let ownerCol = null;
+        if (hasUsuarioId) ownerCol = 'usuario_id';
+        else if (hasUserId) ownerCol = 'user_id';
+        
         if (table === 'usuarios') {
             if (id != userId) return new Response(JSON.stringify({ error: 'No puedes borrar otros usuarios' }), { status: 403, headers: CORS_HEADERS });
             ownerCol = 'id';
         }
 
-        const check = await env.DB.prepare(`SELECT * FROM ${table} WHERE ${pk} = ? AND ${ownerCol} = ?`).bind(id, userId).first();
-        if (!check) return new Response(JSON.stringify({ error: 'Registro no encontrado o no te pertenece' }), { status: 404, headers: CORS_HEADERS });
+        if (ownerCol) {
+            const check = await env.DB.prepare(`SELECT * FROM ${table} WHERE ${pk} = ? AND ${ownerCol} = ?`).bind(id, userId).first();
+            if (!check) return new Response(JSON.stringify({ error: 'Registro no encontrado o no te pertenece' }), { status: 404, headers: CORS_HEADERS });
+        }
     }
 
     await env.DB.prepare(`DELETE FROM ${table} WHERE ${pk} = ?`).bind(id).run();
@@ -202,15 +217,23 @@ export async function onRequestPut({ request, env }) {
 
     // Validación de propiedad
     if (!isSuperAdmin) {
-        let ownerCol = 'usuario_id';
-        if (table === 'user_metadata') ownerCol = 'user_id';
+        const tableCols = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+        const hasUsuarioId = tableCols.results.some(c => c.name === 'usuario_id');
+        const hasUserId    = tableCols.results.some(c => c.name === 'user_id');
+
+        let ownerCol = null;
+        if (hasUsuarioId) ownerCol = 'usuario_id';
+        else if (hasUserId) ownerCol = 'user_id';
+        
         if (table === 'usuarios') {
             if (id != userId) return new Response(JSON.stringify({ error: 'No puedes editar otros usuarios' }), { status: 403, headers: CORS_HEADERS });
             ownerCol = 'id';
         }
 
-        const check = await env.DB.prepare(`SELECT * FROM ${table} WHERE ${pk || 'id'} = ? AND ${ownerCol} = ?`).bind(id, userId).first();
-        if (!check) return new Response(JSON.stringify({ error: 'Registro no encontrado o no te pertenece' }), { status: 404, headers: CORS_HEADERS });
+        if (ownerCol) {
+            const check = await env.DB.prepare(`SELECT * FROM ${table} WHERE ${pk || 'id'} = ? AND ${ownerCol} = ?`).bind(id, userId).first();
+            if (!check) return new Response(JSON.stringify({ error: 'Registro no encontrado o no te pertenece' }), { status: 404, headers: CORS_HEADERS });
+        }
         
         // Evitar que el usuario cambie el dueño o su propio estatus de admin
         delete data.usuario_id;
