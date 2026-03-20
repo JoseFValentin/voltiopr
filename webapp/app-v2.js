@@ -152,8 +152,8 @@ function checkUserSession() {
 
   // Mostrar nombre de usuario en el header si el elemento existe
   const display = document.getElementById('user-display-name');
-  if (display && user) {
-    display.textContent = user;
+  if (display) {
+    display.textContent = user || 'Sesión Activa';
   }
 
   const btnLogout = document.getElementById('btn-logout');
