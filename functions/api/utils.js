@@ -57,20 +57,16 @@ export function getUserFromToken(request) {
   if (token.startsWith("SESSION_")) {
     const rawContent = token.replace("SESSION_", "");
     
-    // 1. Intentar como Formato Nuevo (Base64: UUID + ID)
-    try {
-      const payload = atob(rawContent);
-      if (payload.length > 36) {
-        const userId = payload.substring(36);
-        return parseInt(userId);
-      }
-    } catch (e) {
-      // Ignorar error de base64 y pasar al fallback
+    // 1. Intentar como Formato Directo (UUID : ID)
+    if (rawContent.includes(":")) {
+       const parts = rawContent.split(":");
+       const userId = parseInt(parts[parts.length - 1]);
+       if (!isNaN(userId)) return userId;
     }
 
-    // 2. Fallback: Formato Antiguo (ID directo o JSON simple)
-    const possibleId = parseInt(rawContent);
-    if (!isNaN(possibleId)) return possibleId;
+    // 2. Fallback: Formato Antiguo (solo el ID como número)
+    const oldId = parseInt(rawContent);
+    if (!isNaN(oldId)) return oldId;
   }
   return null;
 }

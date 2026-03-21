@@ -77,8 +77,8 @@ export async function onRequestPost({ request, env }) {
       console.error("Error guardando metadata, pero dejando pasar al usuario:", e);
     }
 
-    // 5. Generar Sesión Segura
-    const access_token = "SESSION_" + btoa(crypto.randomUUID() + usuario.id);
+    // 5. Generar Sesión Segura (UUID : ID Usuario)
+    const access_token = "SESSION_" + crypto.randomUUID() + ":" + usuario.id;
 
     return new Response(JSON.stringify({ 
       success: true, 
