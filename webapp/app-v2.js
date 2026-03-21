@@ -215,6 +215,7 @@ function setupLogin() {
       localStorage.setItem('voltiopr_session', data.token);
       localStorage.setItem('voltiopr_user', data.usuario);
       localStorage.setItem('voltiopr_admin', data.es_admin ? 'true' : 'false');
+      localStorage.setItem('voltiopr_permisos', data.permisos || 'ALL');
       setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
     } catch (err) {
       showToast("Error de conexión. Inténtalo de nuevo.", "error");
@@ -405,6 +406,9 @@ async function setupHardwareControls() {
       `;
     }
 
+    const permisos = localStorage.getItem('voltiopr_permisos') || 'ALL';
+    const isReadOnly = permisos === 'READ_ONLY';
+
     config.forEach(dev => {
       const card = document.createElement('div');
       card.className = "p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2 hover:border-volti-accent/30 transition-all duration-300 group relative overflow-hidden";
@@ -428,7 +432,7 @@ async function setupHardwareControls() {
                  <div class="flex items-center gap-2">
                    <span id="${dev.id}-status-text" class="text-[9px] font-black ${isDigitalOn ? 'text-volti-accent' : 'text-slate-500'} transition-all">${isDigitalOn ? 'ON' : 'OFF'}</span>
                    <div class="relative inline-block w-8 align-middle select-none">
-                     <input type="checkbox" id="${dev.id}-toggle" ${isDigitalOn ? 'checked' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-4 h-4 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
+                     <input type="checkbox" id="${dev.id}-toggle" ${isDigitalOn ? 'checked' : ''} ${isReadOnly ? 'disabled' : ''} class="iot-dynamic-toggle toggle-checkbox absolute block w-4 h-4 rounded-full bg-slate-700 border-4 border-slate-700 appearance-none cursor-pointer transition-all" data-id="${dev.id}" />
                      <label for="${dev.id}-toggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-800 cursor-pointer"></label>
                    </div>
                  </div>
@@ -445,7 +449,7 @@ async function setupHardwareControls() {
                    <span class="font-medium text-xs uppercase tracking-wide text-slate-300">${dev.nombre}</span>
                    <span class="text-[8px] text-slate-500 uppercase tracking-tighter">Pulsador Sincronizado</span>
                  </div>
-                 <button class="iot-dynamic-button px-4 py-2 bg-volti-accent/10 border border-volti-accent/30 hover:bg-volti-accent hover:text-volti-blue text-volti-accent text-[10px] font-black rounded-lg transition-all active:scale-90 uppercase tracking-widest" data-id="${dev.id}">
+                 <button ${isReadOnly ? 'disabled' : ''} class="iot-dynamic-button px-4 py-2 bg-volti-accent/10 border border-volti-accent/30 hover:bg-volti-accent hover:text-volti-blue text-volti-accent text-[10px] font-black rounded-lg transition-all active:scale-90 uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed" data-id="${dev.id}">
                     Pulsar
                  </button>
               </div>
@@ -472,7 +476,7 @@ async function setupHardwareControls() {
                  </div>
               </div>
               <div class="flex items-center gap-4">
-                <input type="range" class="iot-dynamic-slider flex-grow accent-volti-accent" min="0" max="100" value="${currentPWMVal}" data-id="${dev.id}" />
+                <input type="range" ${isReadOnly ? 'disabled' : ''} class="iot-dynamic-slider flex-grow accent-volti-accent" min="0" max="100" value="${currentPWMVal}" data-id="${dev.id}" />
                 <span class="text-[10px] font-mono text-volti-accent w-12 text-right">
                     <span id="${dev.id}-val-num">${currentPWMVal}</span>%
                 </span>
@@ -504,7 +508,7 @@ async function setupHardwareControls() {
                  <div class="w-6 h-6 rounded-full border border-white/20 shadow-lg" id="${dev.id}-color-preview" style="background-color: ${dev.valor_actual}"></div>
               </div>
               <div class="flex gap-2 items-center">
-                <input type="color" class="iot-dynamic-color w-full h-8 bg-transparent border-none cursor-pointer" value="${dev.valor_actual.startsWith('#') ? dev.valor_actual : '#0db9f2'}" data-id="${dev.id}" />
+                <input type="color" ${isReadOnly ? 'disabled' : ''} class="iot-dynamic-color w-full h-8 bg-transparent border-none cursor-pointer disabled:opacity-30" value="${dev.valor_actual.startsWith('#') ? dev.valor_actual : '#0db9f2'}" data-id="${dev.id}" />
               </div>
             </div>
           `;
@@ -718,9 +722,22 @@ function initPinChart(devId) {
 }
 
 function setupDynamicListeners() {
+    const isAdminMod = localStorage.getItem('voltiopr_admin') === 'true';
+    const permisosCap = localStorage.getItem('voltiopr_permisos') || 'ALL';
+
+    // Helper para verificar permisos antes de fetch
+    const canWrite = () => {
+        if (permisosCap === 'READ_ONLY') {
+            showToast("No tienes permisos para realizar esta acción.", "error");
+            return false;
+        }
+        return true;
+    };
+
     // Listeners para Botones (Pulsadores)
     document.querySelectorAll('.iot-dynamic-button').forEach(el => {
         el.addEventListener('click', async (e) => {
+            if (!canWrite()) return;
             const id = e.target.dataset.id;
             // Efecto visual de pulsado
             e.target.classList.add('bg-volti-accent', 'text-volti-blue');
@@ -745,6 +762,7 @@ function setupDynamicListeners() {
             if (preview) preview.style.backgroundColor = e.target.value;
         });
         el.addEventListener('change', async (e) => {
+            if (!canWrite()) return;
             const id = e.target.dataset.id;
             const val = e.target.value;
             await fetch('/api/hardware', {
@@ -761,6 +779,10 @@ function setupDynamicListeners() {
     // Listeners para Toggles
     document.querySelectorAll('.iot-dynamic-toggle').forEach(el => {
         el.addEventListener('change', async (e) => {
+            if (!canWrite()) {
+              e.target.checked = !e.target.checked; // Revertir visualmente
+              return;
+            }
             const id = e.target.dataset.id;
             const checked = e.target.checked;
             const val = checked ? '1' : '0';
@@ -820,6 +842,7 @@ function setupDynamicListeners() {
             }
         });
         el.addEventListener('change', async (e) => {
+            if (!canWrite()) return;
             const id = e.target.dataset.id;
             const val = e.target.value;
             await fetch('/api/hardware', {

@@ -69,3 +69,19 @@ export function getUserFromToken(request) {
   }
   return null;
 }
+/**
+ * Obtiene el objeto de usuario completo (incluyendo permisos y jerarquía)
+ */
+export async function getAuthenticatedUser(request, env) {
+  const userId = getUserFromToken(request);
+  if (!userId) return null;
+
+  try {
+    const user = await env.DB.prepare("SELECT id, username, email, es_admin, parent_id, permisos FROM usuarios WHERE id = ?")
+      .bind(userId)
+      .first();
+    return user;
+  } catch (e) {
+    return null;
+  }
+}

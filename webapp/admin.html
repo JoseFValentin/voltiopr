@@ -589,6 +589,20 @@
         </select></div>`;
       }
 
+      const isPermisos = c.name === 'permisos';
+      if (isPermisos) {
+        return `<div class="space-y-1">${label}<select name="${c.name}" class="w-full bg-slate-900 text-white rounded-xl p-2 outline-none border border-white/10 text-xs text-volti-accent font-bold">
+          <option value="ALL" ${ (data ? data[c.name] : 'ALL') === 'ALL' ? 'selected':'' }>ALL (Control Total)</option>
+          <option value="CONTROL" ${ (data ? data[c.name] : '') === 'CONTROL' ? 'selected':'' }>CONTROL (Solo hardware)</option>
+          <option value="READ_ONLY" ${ (data ? data[c.name] : '') === 'READ_ONLY' ? 'selected':'' }>READ_ONLY (Vista soltera)</option>
+        </select></div>`;
+      }
+
+      // Ocultar campos sensibles si no es SuperAdmin
+      if (!isAdminStatus && (c.name === 'es_admin' || c.name === 'parent_id')) {
+        return `<input type="hidden" name="${c.name}" value="${data ? data[c.name] : (c.name==='es_admin'?'0':'')}" />`;
+      }
+
       if (isUserCol && isAdminStatus) {
         return `<div class="space-y-1">${label}<select name="${c.name}" class="w-full bg-slate-900 text-white rounded-xl p-2 outline-none border border-white/10 text-xs text-volti-accent font-bold">
           <option value="">-- Seleccionar Usuario --</option>

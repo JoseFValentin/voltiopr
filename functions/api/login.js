@@ -84,7 +84,9 @@ export async function onRequestPost({ request, env }) {
       success: true, 
       mensaje: "¡Bienvenido de vuelta!",
       token: access_token,
-      usuario: usuario.username
+      usuario: usuario.username,
+      es_admin: usuario.es_admin === 1,
+      permisos: usuario.permisos || 'ALL'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }

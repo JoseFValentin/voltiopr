@@ -14,6 +14,8 @@ CREATE TABLE usuarios (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     es_admin BOOLEAN DEFAULT FALSE,
+    parent_id INTEGER REFERENCES usuarios(id), -- Dueño del sub-usuario
+    permisos TEXT DEFAULT 'ALL',                 -- 'READ_ONLY', 'CONTROL', 'ALL'
     reset_token TEXT,             -- Para recuperación de contraseña
     reset_token_expiry TEXT,      -- Cuándo expira el token
     fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP

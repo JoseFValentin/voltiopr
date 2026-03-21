@@ -1,74 +1,75 @@
-// BACKEND: API DE CONTROL DE HARDWARE IoT (Unificada)
-// ==============================================================
-import { getUserFromToken } from './utils.js';
+import { getAuthenticatedUser } from './utils.js';
 
 // La llave secreta que debe enviar el hardware
 const ACCESS_KEY_SECRET = "v0ltio_Acc3ss_2026_Secur3";
 
-function isAuthorized(request) {
-  const apiKey = request.headers.get("X-API-KEY");
-  return apiKey === ACCESS_KEY_SECRET;
-}
-
 export async function onRequestGet({ request, env }) {
   const isHardware = request.headers.get("X-API-KEY") === ACCESS_KEY_SECRET;
-  const userId = !isHardware ? getUserFromToken(request) : null;
+  const user = !isHardware ? await getAuthenticatedUser(request, env) : null;
 
-  if (!isHardware && !userId) {
+  if (!isHardware && !user) {
     return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401 });
   }
 
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
+    const userId = user?.id;
 
     if (id) {
-        // Validación de propiedad si es desde la web
-        const query = userId 
-          ? 'SELECT * FROM iot_config WHERE id = ? AND usuario_id = ?'
-          : 'SELECT * FROM iot_config WHERE id = ?';
+        // Un usuario puede ver lo suyo o lo de sus hijos
+        let query = 'SELECT * FROM iot_config WHERE id = ?';
+        let params = [id];
         
-        const params = userId ? [id, userId] : [id];
-        const device = await env.DB.prepare(query).bind(...params).first();
-        
-        if (!device && userId) {
-           return new Response(JSON.stringify({ error: "Dispositivo no encontrado o no pertenece al usuario" }), { status: 404 });
+        if (!isHardware) {
+           query += ' AND (usuario_id = ? OR usuario_id IN (SELECT id FROM usuarios WHERE parent_id = ?))';
+           params.push(userId, userId);
         }
         
+        const device = await env.DB.prepare(query).bind(...params).first();
+        if (!device && !isHardware) {
+           return new Response(JSON.stringify({ error: "Dispositivo no encontrado o acceso denegado" }), { status: 404 });
+        }
         return new Response(JSON.stringify(device), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Para la web, devolvemos solo lo del usuario
-    if (userId) {
-        const { results } = await env.DB.prepare('SELECT * FROM iot_config WHERE usuario_id = ?').bind(userId).all();
+    // Para la web, devolvemos lo del usuario y sus hijos
+    if (!isHardware) {
+        const { results } = await env.DB.prepare('SELECT * FROM iot_config WHERE usuario_id = ? OR usuario_id IN (SELECT id FROM usuarios WHERE parent_id = ?)').bind(userId, userId).all();
         return new Response(JSON.stringify({ success: true, datos_iot: results }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         });
     }
 
-    // Si es el hardware (NodeMCU), por ahora devolvemos todo o podrías filtrar por MAC si la tuviéramos
+    // Si es el hardware (NodeMCU), devolvemos todo
     const { results } = await env.DB.prepare('SELECT * FROM iot_config').all();
     return new Response(JSON.stringify({ success: true, datos_iot: results }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
   } catch(err) {
-    return new Response(JSON.stringify({ error: "Error leyendo sensores" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Error de base de datos" }), { status: 500 });
   }
 }
 
 export async function onRequestPost({ request, env }) {
   const isHardware = request.headers.get("X-API-KEY") === ACCESS_KEY_SECRET;
-  const userId = !isHardware ? getUserFromToken(request) : null;
+  const user = !isHardware ? await getAuthenticatedUser(request, env) : null;
 
-  if (!isHardware && !userId) {
+  if (!isHardware && !user) {
     return new Response(JSON.stringify({ error: "Acceso denegado" }), { status: 401 });
+  }
+
+  // Verificar permisos de control
+  if (user && user.permisos === 'READ_ONLY') {
+    return new Response(JSON.stringify({ error: "No tienes permisos para controlar dispositivos" }), { status: 403 });
   }
 
   try {
     const orden = await request.json();
     const id = orden.id_dispositivo;
+    const userId = user?.id;
     
     let nuevoValor = orden.valor;
     if (nuevoValor === undefined) {
@@ -79,24 +80,21 @@ export async function onRequestPost({ request, env }) {
         }
     }
 
-    if (!id) {
-      return new Response(JSON.stringify({ error: "Falta ID de dispositivo" }), { status: 400 });
-    }
+    if (!id) return new Response(JSON.stringify({ error: "Falta ID" }), { status: 400 });
 
     // Actualizamos la tabla de configuración dinámica
-    const query = userId 
-      ? 'UPDATE iot_config SET valor_actual = ? WHERE id = ? AND usuario_id = ?'
-      : 'UPDATE iot_config SET valor_actual = ? WHERE id = ?';
+    let query = 'UPDATE iot_config SET valor_actual = ? WHERE id = ?';
+    let params = [nuevoValor, id];
+
+    if (!isHardware) {
+        query += ' AND (usuario_id = ? OR usuario_id IN (SELECT id FROM usuarios WHERE parent_id = ?))';
+        params.push(userId, userId);
+    }
     
-    const params = userId ? [nuevoValor, id, userId] : [nuevoValor, id];
     const result = await env.DB.prepare(query).bind(...params).run();
 
-    if (result.meta.changes === 0 && !userId) {
-        // Legacy support solo si no hay userId (hardware directo a tabla antigua)
-        const stmtLegacy = env.DB.prepare('UPDATE dispositivos SET estado_encendido = ?, poder_porcentaje = ? WHERE id = ?');
-        const isEncendido = nuevoValor === "1" || parseInt(nuevoValor) > 0;
-        const subPotencia = parseInt(nuevoValor) || 0;
-        await stmtLegacy.bind(isEncendido, subPotencia, id).run();
+    if (result.meta.changes === 0 && !isHardware) {
+        return new Response(JSON.stringify({ error: "No autorizado o dispositivo inexistente" }), { status: 403 });
     }
 
     return new Response(JSON.stringify({ success: true }), {
