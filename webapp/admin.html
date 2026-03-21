@@ -397,16 +397,19 @@
     
     // Filtrar columnas para no mostrar IDs de usuario si tenemos el nombre
     let headers = Object.keys(rows[0]);
-    const hasName = headers.includes('usuario_nombre');
-    if (hasName) {
-      headers = headers.filter(h => h !== 'usuario_id' && h !== 'user_id');
-    }
+    if (headers.includes('usuario_nombre')) headers = headers.filter(h => h !== 'usuario_id' && h !== 'user_id');
+    if (headers.includes('parent_nombre')) headers = headers.filter(h => h !== 'parent_id');
 
     area.innerHTML = `
       <table class="data-table">
         <thead>
           <tr>
-            ${headers.map(h => `<th>${h === 'usuario_nombre' ? 'Usuario' : h}</th>`).join('')}
+            ${headers.map(h => {
+              let headerName = h;
+              if (h === 'usuario_nombre') headerName = 'Usuario';
+              if (h === 'parent_nombre') headerName = 'Usuario Padre';
+              return `<th>${headerName}</th>`;
+            }).join('')}
             <th class="text-center">Acción</th>
           </tr>
         </thead>
@@ -561,14 +564,18 @@
     fields.innerHTML = editableCols.map(c => {
       const isDate = c.type?.toLowerCase().includes('datetime');
       const isType = currentTable === 'iot_config' && c.name === 'tipo';
-      const isUserCol = c.name === 'usuario_id' || c.name === 'user_id';
+      const isUserCol = c.name === 'usuario_id' || c.name === 'user_id' || c.name === 'parent_id';
 
       // Si no es admin y es columna de usuario, la ocultamos (auto-asignación en server)
       if (isUserCol && !isAdminStatus) {
         return `<input type="hidden" name="${c.name}" value="${data ? data[c.name] : ''}" />`;
       }
 
-      const labelTxt = isUserCol ? 'Dueño del Registro' : (isType ? 'Protocolo Hardware' : c.name);
+      let labelTxt = c.name;
+      if (c.name === 'usuario_id' || c.name === 'user_id') labelTxt = 'Dueño del Registro';
+      if (c.name === 'parent_id') labelTxt = 'Usuario Padre / Principal';
+      if (isType) labelTxt = 'Protocolo Hardware';
+
       const label = `<label class="text-[10px] font-bold text-slate-500 uppercase flex justify-between mb-1">
         <span>${labelTxt} ${c.pk ? '<span class="text-volti-accent">(PK)</span>':''}</span>
         ${isDate ? '<button type="button" class="text-volti-accent" onclick="this.parentElement.nextElementSibling.value=new Date(new Date().getTime() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)">Ahora</button>':''}
@@ -599,8 +606,8 @@
       }
 
       // Ocultar campos sensibles si no es SuperAdmin
-      if (!isAdminStatus && (c.name === 'es_admin' || c.name === 'parent_id')) {
-        return `<input type="hidden" name="${c.name}" value="${data ? data[c.name] : (c.name==='es_admin'?'0':'')}" />`;
+      if (!isAdminStatus && (c.name === 'es_admin')) {
+        return `<input type="hidden" name="${c.name}" value="${data ? data[c.name] : '0'}" />`;
       }
 
       if (isUserCol && isAdminStatus) {

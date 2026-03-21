@@ -73,6 +73,8 @@ export async function onRequestGet({ request, env }) {
         query = `SELECT t.*, u.username as usuario_nombre FROM ${table} t LEFT JOIN usuarios u ON t.usuario_id = u.id`;
     } else if (hasUserId && table !== 'usuarios') {
         query = `SELECT t.*, u.username as usuario_nombre FROM ${table} t LEFT JOIN usuarios u ON t.user_id = u.id`;
+    } else if (table === 'usuarios') {
+        query = `SELECT t.*, u.username as parent_nombre FROM usuarios t LEFT JOIN usuarios u ON t.parent_id = u.id`;
     }
 
     const params = [];
