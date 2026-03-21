@@ -13,7 +13,8 @@ export async function onRequest(context) {
   if (context.request.method === "OPTIONS") {
     return new Response(null, { headers: CORS_HEADERS });
   }
-} // Solo para asegurar que exportamos la base si fuera necesario, pero wrangler usa onRequestGet etc.
+  return await context.next();
+}
 
 // ==============================================================
 // GET: Obtener registros de una tabla (Jerárquico)

@@ -299,6 +299,11 @@
   let filteredData = [];
   let editId       = null;
 
+  // Asegurar que el usuario esté autenticado
+  if (typeof checkUserSession === 'function') {
+    checkUserSession();
+  }
+
   function toast(msg, type = 'ok') {
     const el = document.getElementById('toast');
     if (!el) return;

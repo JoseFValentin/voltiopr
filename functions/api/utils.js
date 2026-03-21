@@ -52,20 +52,25 @@ export function getUserFromToken(request) {
   const authHeader = request.headers.get("Authorization");
   const token = authHeader ? authHeader.replace("Bearer ", "") : null;
   
-  if (!token && request.url.includes('/api/')) {
-    // Fallback: buscar en cookies o query params si es necesario (opcional)
-  }
+  if (!token) return null;
 
-  if (token && token.startsWith("SESSION_")) {
+  if (token.startsWith("SESSION_")) {
+    const rawContent = token.replace("SESSION_", "");
+    
+    // 1. Intentar como Formato Nuevo (Base64: UUID + ID)
     try {
-      const payload = atob(token.replace("SESSION_", ""));
-      // El formato que usamos en login.js es: crypto.randomUUID() + usuario.id
-      // El UUID v4 tiene 36 caracteres.
-      const userId = payload.substring(36);
-      return parseInt(userId);
+      const payload = atob(rawContent);
+      if (payload.length > 36) {
+        const userId = payload.substring(36);
+        return parseInt(userId);
+      }
     } catch (e) {
-      return null;
+      // Ignorar error de base64 y pasar al fallback
     }
+
+    // 2. Fallback: Formato Antiguo (ID directo o JSON simple)
+    const possibleId = parseInt(rawContent);
+    if (!isNaN(possibleId)) return possibleId;
   }
   return null;
 }
