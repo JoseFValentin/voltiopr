@@ -9,24 +9,37 @@ const CORS_HEADERS = {
 
 const ALLOWED_TABLES = ['usuarios', 'dispositivos', 'iot_config', 'user_metadata', 'firmwares'];
 
+/**
+ * ARCHIVO MAESTRO DE API ADMIN
+ * Maneja todas las peticiones a /api/admin centralizando la seguridad
+ */
 export async function onRequest(context) {
-  if (context.request.method === "OPTIONS") {
+  const { request, env } = context;
+  
+  if (request.method === "OPTIONS") {
     return new Response(null, { headers: CORS_HEADERS });
   }
-  return await context.next();
+
+  const user = await getAuthenticatedUser(request, env);
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
+  }
+
+  if (request.method === "GET") return handleGet(context, user);
+  if (request.method === "POST") return handlePost(context, user);
+  if (request.method === "PUT") return handlePut(context, user);
+  if (request.method === "DELETE") return handleDelete(context, user);
+
+  return new Response("Method not allowed", { status: 405 });
 }
 
 // ==============================================================
 // GET: Obtener registros de una tabla (Jerárquico)
 // ==============================================================
-export async function onRequestGet({ request, env }) {
+async function handleGet({ request, env }, user) {
   try {
-    const user = await getAuthenticatedUser(request, env);
-    if (!user) return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
-
     const userId = user.id;
     const isSuperAdmin = user.es_admin === 1;
-
     const url = new URL(request.url);
     const table = url.searchParams.get('table');
 
@@ -103,10 +116,8 @@ export async function onRequestGet({ request, env }) {
 // ==============================================================
 // POST: Insertar (Jerárquico)
 // ==============================================================
-export async function onRequestPost({ request, env }) {
+async function handlePost({ request, env }, user) {
   try {
-    const user = await getAuthenticatedUser(request, env);
-    if (!user) return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
     if (user.permisos === 'READ_ONLY') return new Response(JSON.stringify({ error: 'Sin permisos de escritura' }), { status: 403, headers: CORS_HEADERS });
 
     const userId = user.id;
@@ -146,10 +157,8 @@ export async function onRequestPost({ request, env }) {
 // ==============================================================
 // PUT: Actualizar (Jerárquico)
 // ==============================================================
-export async function onRequestPut({ request, env }) {
+async function handlePut({ request, env }, user) {
   try {
-    const user = await getAuthenticatedUser(request, env);
-    if (!user) return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
     if (user.permisos === 'READ_ONLY') return new Response(JSON.stringify({ error: 'Sin permisos de escritura' }), { status: 403, headers: CORS_HEADERS });
 
     const userId = user.id;
@@ -201,10 +210,8 @@ export async function onRequestPut({ request, env }) {
 // ==============================================================
 // DELETE: Eliminar (Jerárquico)
 // ==============================================================
-export async function onRequestDelete({ request, env }) {
+async function handleDelete({ request, env }, user) {
   try {
-    const user = await getAuthenticatedUser(request, env);
-    if (!user) return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
     if (user.permisos === 'READ_ONLY') return new Response(JSON.stringify({ error: 'Sin permisos de escritura' }), { status: 403, headers: CORS_HEADERS });
 
     const userId = user.id;
