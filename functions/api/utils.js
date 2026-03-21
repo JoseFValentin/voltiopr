@@ -50,10 +50,11 @@ export async function verifyPassword(password, hash) {
  */
 export function getUserFromToken(request) {
   const authHeader = request.headers.get("Authorization");
-  const token = authHeader ? authHeader.replace("Bearer ", "") : null;
-  
-  if (!token) return null;
+  if (!authHeader) return null;
 
+  // Limpiar "Bearer " con regex para manejar múltiples espacios y trim final
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  
   if (token.startsWith("SESSION_")) {
     const rawContent = token.replace("SESSION_", "");
     
