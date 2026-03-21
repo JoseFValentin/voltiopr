@@ -1,4 +1,4 @@
-import { getAuthenticatedUser } from './utils.js';
+import { getAuthenticatedUser, getUserFromToken } from './utils.js';
 
 const CORS_HEADERS = {
   'Content-Type': 'application/json',
@@ -20,9 +20,16 @@ export async function onRequest(context) {
     return new Response(null, { headers: CORS_HEADERS });
   }
 
+  const userIdExtracted = getUserFromToken(request);
   const user = await getAuthenticatedUser(request, env);
   if (!user) {
-    return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({ 
+      error: 'No autorizado', 
+      debug: { 
+        userId: userIdExtracted || 'No extraído',
+        foundInDb: !!user 
+      }
+    }), { status: 401, headers: CORS_HEADERS });
   }
 
   if (request.method === "GET") return handleGet(context, user);
