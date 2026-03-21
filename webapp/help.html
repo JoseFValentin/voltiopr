@@ -85,6 +85,43 @@
           </summary>
           <p class="mt-4 text-slate-400 text-xs">Asegúrate de que tu dispositivo tenga corriente y acceso a internet. Revisa el Terminal Serial en el código de Arduino para ver posibles errores de conexión.</p>
         </details>
+
+        <details class="group bg-white/5 rounded-xl p-3 border border-white/5">
+          <summary class="list-none flex justify-between items-center cursor-pointer font-bold text-xs uppercase tracking-wider text-volti-accent">
+            ¿Cómo funciona la jerarquía de cuentas, invitados y permisos?
+            <span class="text-volti-accent transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <div class="mt-4 text-slate-400 text-xs space-y-3">
+            <p>La base de datos de VoltioPR está diseñada con <strong>3 Niveles de Jerarquía</strong>:</p>
+            <ul class="list-disc list-inside space-y-1 ml-2">
+              <li><strong class="text-slate-200">Admin Global:</strong> Tienen acceso al Panel de Administración y control total.</li>
+              <li><strong class="text-slate-200">Usuario Principal:</strong> Dueño normal de sus propios dispositivos IoT.</li>
+              <li><strong class="text-slate-200">Sub-Usuarios / Invitados:</strong> Cuentas secundarias creadas por el Usuario Principal (ej. huéspedes, empleados). Tienen acceso limitado guiado por la variable <code>parent_id</code>.</li>
+            </ul>
+            <p class="mt-2 font-bold text-slate-200">Niveles de Permisos (Sub-Usuarios):</p>
+            <ul class="list-disc list-inside space-y-1 ml-2">
+              <li><strong class="text-emerald-400">ALL:</strong> Control total (pueden añadir o borrar dispositivos del panel).</li>
+              <li><strong class="text-blue-400">CONTROL:</strong> Solo pueden interactuar (prender/apagar botones existentes).</li>
+              <li><strong class="text-red-400">READ_ONLY:</strong> Solo pueden ver valores (gráficas, temperatura), sin tocar botones.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="group bg-white/5 rounded-xl p-3 border border-white/5">
+          <summary class="list-none flex justify-between items-center cursor-pointer font-bold text-xs uppercase tracking-wider text-volti-accent">
+            ¿Cómo crear sub-usuarios (invitados/parientes) en la plataforma?
+            <span class="text-volti-accent transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <div class="mt-4 text-slate-400 text-xs space-y-3">
+            <p>Por ahora, como Admin Global, puedes crear invitados a través de la pestaña <strong>"Configuración (Admin)"</strong>. Para un hotel, por ejemplo:</p>
+            <ol class="list-decimal list-inside space-y-2 ml-2">
+              <li>Ve a la tabla <strong>usuarios</strong> y anota el número <code>id</code> del Usuario Principal (Ej: 10, Gerente del Resort).</li>
+              <li>Presiona <span class="bg-volti-accent/20 text-volti-accent px-1 rounded">Insertar</span> para crear la cuenta del "Huésped".</li>
+              <li>Al formulario, asígnale el <code>parent_id: 10</code> y pon los permisos en <code>CONTROL</code>.</li>
+            </ol>
+            <p class="mt-2 text-justify">Con esto, el huésped podrá controlar sus aires y luces, pero no podrá dañar el sistema ni ver configuraciones sensibles de la cuenta del gerente.</p>
+          </div>
+        </details>
       </div>
     </section>
   </main>
